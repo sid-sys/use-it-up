@@ -32,7 +32,7 @@ class FoodCard extends StatelessWidget {
       Urgency.expired => (Icons.error_outline, redDark),
       Urgency.today => (Icons.warning_amber_rounded, redDark),
       Urgency.soon => (Icons.schedule, amber),
-      Urgency.later => (Icons.check_circle_outline, charcoal),
+      Urgency.later => (Icons.event_outlined, charcoal),
     };
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
