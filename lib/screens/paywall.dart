@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../analytics.dart';
+import '../billing.dart';
 import '../config.dart';
 import '../main.dart';
 import '../theme.dart';
@@ -18,7 +19,7 @@ class PaywallScreen extends StatefulWidget {
 }
 
 class _PaywallScreenState extends State<PaywallScreen> {
-  bool _annual = true;
+  PlanKind _plan = PlanKind.yearly;
   bool _busy = false;
   String? _error;
 
@@ -44,10 +45,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
       _error = null;
     });
     try {
-      Analytics.instance.log(Ev.paymentAttempt, _annual ? 'yearly' : 'monthly');
-      final trial = !billing.trialUsed;
-      await billing.subscribe(annual: _annual);
-      Analytics.instance.log(Ev.subscribed, '${trial ? 'trial ' : ''}${_annual ? 'yearly' : 'monthly'}');
+      Analytics.instance.log(Ev.paymentAttempt, _plan.name);
+      final trial = !billing.trialUsed && _plan != PlanKind.lifetime;
+      await billing.subscribe(_plan);
+      Analytics.instance.log(Ev.subscribed, '${trial ? 'trial ' : ''}${_plan.name}');
       if (!mounted) return;
       if (widget.onClose == null) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Premium is on. Enjoy!')));
@@ -71,9 +72,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
           listenable: billing,
           builder: (context, _) {
             final canTrial = !billing.trialUsed;
-            final price = _annual
-                ? '${AppConfig.money(AppConfig.yearlyPrice)} / year'
-                : '${AppConfig.money(AppConfig.monthlyPrice)} / month';
+            final lifetime = _plan == PlanKind.lifetime;
+            final trialApplies = canTrial && !lifetime;
+            final price = switch (_plan) {
+              PlanKind.monthly => '${AppConfig.money(AppConfig.monthlyPrice)} / month',
+              PlanKind.lifetime => '${AppConfig.money(AppConfig.lifetimePrice)} once',
+              _ => '${AppConfig.money(AppConfig.yearlyPrice)} / year',
+            };
             return Column(children: [
               Align(
                 alignment: Alignment.centerRight,
@@ -98,26 +103,36 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     if (canTrial) _Feature('${AppConfig.trialDays}-day free trial', 'Try Premium before you pay.'),
                     const SizedBox(height: 14),
                     _Plan(
-                      selected: _annual,
-                      title: 'Premium',
+                      selected: _plan == PlanKind.yearly,
+                      title: 'Yearly',
                       price: '${AppConfig.money(AppConfig.yearlyPrice)} / year',
                       sub: 'About ${AppConfig.money(double.parse((AppConfig.yearlyPrice / 12).toStringAsFixed(2)))} a month',
                       badge: 'SAVE ${AppConfig.yearlySavingsPct}%',
-                      onTap: () => setState(() => _annual = true),
+                      onTap: () => setState(() => _plan = PlanKind.yearly),
                     ),
                     const SizedBox(height: 10),
                     _Plan(
-                      selected: !_annual,
+                      selected: _plan == PlanKind.monthly,
                       title: 'Monthly',
                       price: '${AppConfig.money(AppConfig.monthlyPrice)} / month',
                       sub: 'Cancel any time',
-                      onTap: () => setState(() => _annual = false),
+                      onTap: () => setState(() => _plan = PlanKind.monthly),
+                    ),
+                    const SizedBox(height: 10),
+                    _Plan(
+                      selected: lifetime,
+                      title: 'Lifetime',
+                      price: '${AppConfig.money(AppConfig.lifetimePrice)} once',
+                      sub: 'Pay once. Keep Premium for good.',
+                      onTap: () => setState(() => _plan = PlanKind.lifetime),
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      canTrial
-                          ? '${AppConfig.money(0)} today, then $price after your ${AppConfig.trialDays}-day trial. Cancel before renewal to avoid the charge.'
-                          : 'Renews automatically at $price unless you cancel in your store account settings. The store shows the final price.',
+                      lifetime
+                          ? 'One-time payment of $price. No renewal. The store shows the final price.'
+                          : trialApplies
+                              ? '${AppConfig.money(0)} today, then $price after your ${AppConfig.trialDays}-day trial. Cancel before renewal to avoid the charge.'
+                              : 'Renews automatically at $price unless you cancel in your store account settings. The store shows the final price.',
                       style: body(12.5, FontWeight.w400, Colors.black54),
                     ),
                     if (_error != null) ...[
@@ -144,7 +159,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     onPressed: _busy ? null : _buy,
                     child: _busy
                         ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: charcoal))
-                        : Text(_error != null ? 'Try again' : (canTrial ? 'Start free trial' : 'Subscribe')),
+                        : Text(_error != null ? 'Try again' : (lifetime ? 'Buy lifetime' : (canTrial ? 'Start free trial' : 'Subscribe'))),
                   ),
                   const SizedBox(height: 4),
                   TextButton(onPressed: _busy ? null : _close, child: Text('Maybe later', style: body(15.5, FontWeight.w700))),

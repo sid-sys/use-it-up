@@ -209,6 +209,8 @@ class _PlanCard extends StatelessWidget {
       case PlanKind.monthly:
       case PlanKind.yearly:
         sub = 'Renews at ${billing.chosenPriceText}.';
+      case PlanKind.lifetime:
+        sub = 'Paid once. Yours for good.';
     }
     return Container(
       padding: const EdgeInsets.all(18),
@@ -227,7 +229,7 @@ class _PlanCard extends StatelessWidget {
                 .push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => const PaywallScreen())),
             child: Text(billing.trialUsed ? 'Upgrade to Premium' : 'Try 7 days free'),
           )
-        else ...[
+        else if (plan != PlanKind.lifetime) ...[
           if (plan == PlanKind.trial || plan == PlanKind.monthly)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),

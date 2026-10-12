@@ -5,7 +5,9 @@ import '../main.dart';
 import '../models.dart';
 import '../theme.dart';
 import 'add.dart';
+import '../widgets/fruit_bowl.dart';
 import 'food_card.dart';
+import 'group.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -306,71 +308,158 @@ class _FoodsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (empty) return const _Empty('Nothing here yet', 'Add your first food. It takes seconds.', Icons.kitchen_outlined);
     if (items.isEmpty) return const _Empty('No match', 'Try a different day or word.', Icons.search_off);
-    final eatFirst = items.where((i) => i.daysLeft() <= 7).toList();
-    final fresh = items.where((i) => i.daysLeft() > 7 && i.daysLeft() <= 30).toList();
-    final long = items.where((i) => i.daysLeft() > 30).toList();
+    List<FoodItem> of(ShelfGroup g) => items.where((i) => shelfGroupOf(i.daysLeft()) == g).toList();
+    final eatFirst = of(ShelfGroup.eatFirst);
+    final fresh = of(ShelfGroup.stillFresh);
+    final long = of(ShelfGroup.longKeepers);
     final asap = eatFirst.where((i) => i.daysLeft() <= 2).length;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
       children: [
-        if (eatFirst.isNotEmpty)
-          _Group(
-            title: 'Eat me first',
-            sub: 'Lasts up to 7 days',
-            items: eatFirst,
-            chips: [('ASAP $asap', amber), ('This week ${eatFirst.length - asap}', charcoal)],
-            highlight: true,
-          ),
-        if (fresh.isNotEmpty) _Group(title: 'Still fresh', sub: 'Lasts 1 to 4 weeks', items: fresh),
-        if (long.isNotEmpty) _Group(title: 'Long keepers', sub: 'Lasts 1 month or more', items: long),
+        if (eatFirst.isNotEmpty) ...[
+          _EatFirstCard(count: eatFirst.length, asap: asap),
+          const SizedBox(height: 12),
+          for (final i in eatFirst) FoodCard(item: i),
+        ],
+        if (fresh.isNotEmpty)
+          _ChipGroup(group: ShelfGroup.stillFresh, items: fresh, dot: const Color(0xFF7CC242)),
+        if (long.isNotEmpty)
+          _ChipGroup(group: ShelfGroup.longKeepers, items: long, dot: const Color(0xFFB8B39A), fullButton: true),
       ],
     );
   }
 }
 
-class _Group extends StatelessWidget {
-  final String title;
-  final String sub;
-  final List<FoodItem> items;
-  final List<(String, Color)> chips;
-  final bool highlight;
-  const _Group({required this.title, required this.sub, required this.items, this.chips = const [], this.highlight = false});
+/// "Eat me first": up to 7 days. Illustrated card with ASAP and This week counts.
+class _EatFirstCard extends StatelessWidget {
+  final int count;
+  final int asap;
+  const _EatFirstCard({required this.count, required this.asap});
 
   @override
   Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(26),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GroupScreen(group: ShelfGroup.eatFirst))),
+      child: Container(
+        margin: const EdgeInsets.only(top: 6),
+        padding: const EdgeInsets.fromLTRB(18, 16, 14, 14),
+        decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(26)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(child: Text(ShelfGroup.eatFirst.title, style: body(22, FontWeight.w800))),
+            _CountPill(count: count, dot: const Color(0xFFF57A1F)),
+          ]),
+          Text(ShelfGroup.eatFirst.sub, style: body(13, FontWeight.w400, Colors.black54)),
+          const SizedBox(height: 6),
+          const Center(child: FruitBowl()),
+          const SizedBox(height: 8),
+          Row(children: [
+            _DotLabel('ASAP $asap', const Color(0xFFF57A1F)),
+            const SizedBox(width: 10),
+            _DotLabel('This week ${count - asap}', const Color(0xFFF2B600)),
+            const Spacer(),
+            const _ArrowButton(),
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
+/// "Still fresh" (1 to 4 weeks) and "Long keepers" (1 to 12 months): compact pills.
+class _ChipGroup extends StatelessWidget {
+  final ShelfGroup group;
+  final List<FoodItem> items;
+  final Color dot;
+  final bool fullButton;
+  const _ChipGroup({required this.group, required this.items, required this.dot, this.fullButton = false});
+
+  static const _max = 12;
+
+  void _open(BuildContext context) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => GroupScreen(group: group)));
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = items.take(_max).toList();
     return Container(
       margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
-      decoration: BoxDecoration(
-        color: highlight ? lime.withValues(alpha: 0.35) : Colors.white.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(22),
-      ),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(26)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: Text(title, style: body(19, FontWeight.w800))),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(20)),
-            child: Text(items.length == 1 ? '1 item' : '${items.length} items', style: body(12, FontWeight.w700)),
-          ),
+          Expanded(child: Text(group.title, style: body(20, FontWeight.w800))),
+          _CountPill(count: items.length, dot: dot),
         ]),
-        Text(sub, style: body(13, FontWeight.w400, Colors.black54)),
-        if (chips.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Wrap(spacing: 8, children: [
-            for (final (label, c) in chips)
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.circle, size: 9, color: c),
-                const SizedBox(width: 4),
-                Text(label, style: body(12, FontWeight.w700)),
-              ]),
-          ]),
-        ],
-        const SizedBox(height: 10),
-        for (final i in items) FoodCard(item: i),
+        Text(group.sub, style: body(13, FontWeight.w400, Colors.black54)),
+        const SizedBox(height: 14),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          for (final i in shown) FoodPill(item: i),
+          if (items.length > _max)
+            GestureDetector(
+              onTap: () => _open(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(color: const Color(0xFFF4F3EC), borderRadius: BorderRadius.circular(16)),
+                child: Text('+${items.length - _max} more', style: body(13, FontWeight.w700)),
+              ),
+            ),
+        ]),
+        const SizedBox(height: 14),
+        if (fullButton)
+          FilledButton(
+            style: darkButton().merge(FilledButton.styleFrom(minimumSize: const Size.fromHeight(50))),
+            onPressed: () => _open(context),
+            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text('Full inventory'),
+              SizedBox(width: 8),
+              Icon(Icons.arrow_forward, size: 18),
+            ]),
+          )
+        else
+          Align(alignment: Alignment.centerRight, child: GestureDetector(onTap: () => _open(context), child: const _ArrowButton())),
       ]),
     );
   }
+}
+
+class _CountPill extends StatelessWidget {
+  final int count;
+  final Color dot;
+  const _CountPill({required this.count, required this.dot});
+
+  @override
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.circle, size: 10, color: dot),
+        const SizedBox(width: 6),
+        Text(count == 1 ? '1 item' : '$count items', style: body(12.5, FontWeight.w700)),
+      ]);
+}
+
+class _DotLabel extends StatelessWidget {
+  final String text;
+  final Color color;
+  const _DotLabel(this.text, this.color);
+
+  @override
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.circle, size: 9, color: color),
+        const SizedBox(width: 5),
+        Text(text, style: body(12.5, FontWeight.w700)),
+      ]);
+}
+
+class _ArrowButton extends StatelessWidget {
+  const _ArrowButton();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 48,
+        height: 48,
+        decoration: const BoxDecoration(color: charcoal, shape: BoxShape.circle),
+        child: const Icon(Icons.arrow_forward, color: Colors.white),
+      );
 }
 
 class _ExpiredTab extends StatelessWidget {

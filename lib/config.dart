@@ -19,14 +19,13 @@ class AppConfig {
 
   // Store prices in US dollars. Apple and Google convert them to local currency (for
   // example INR) when you set up the products, so the app only needs the dollar prices.
-  // Yearly is 75% off twelve months of the monthly price: 12 x 6.99 = 83.88, 25% of that is
-  // 20.97, and 20.99 is the nearest normal store price point.
+  // Monthly $6.99, yearly $49.99 (about 40% less than twelve months), lifetime $99 once.
   // Market check from store listings (may have changed): NoWaste Pro $6.99/yr, FreshKeeper
   // $8.99/mo and $19.99/yr, Cooklist $49.99-59.99/yr, Pantry Pal $59.99/yr.
   static const currency = '\$';
   static const monthlyPrice = 6.99;
-  static const yearlyPrice = 20.99;
-  static const lifetimePrice = 29.99; // not shown in the app yet
+  static const yearlyPrice = 49.99;
+  static const lifetimePrice = 99.0; // one-time purchase, no trial
   static const trialDays = 7;
 
   /// Share the stores keep. 15% = small business programs. Use 0.30 to be careful.

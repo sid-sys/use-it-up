@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'config.dart';
 
-enum PlanKind { free, trial, monthly, yearly }
+enum PlanKind { free, trial, monthly, yearly, lifetime }
 
 /// Premium state. Local stand-in for RevenueCat (StoreKit / Google Play Billing).
 /// To go live: replace [subscribe], [cancel] and [restore] with purchases_flutter calls.
@@ -32,17 +32,21 @@ class Billing extends ChangeNotifier {
         PlanKind.trial => 'Premium trial',
         PlanKind.monthly => 'Premium monthly',
         PlanKind.yearly => 'Premium yearly',
+        PlanKind.lifetime => 'Premium lifetime',
       };
 
-  String get chosenPriceText => _chosen == PlanKind.monthly
-      ? '${AppConfig.money(AppConfig.monthlyPrice)} per month'
-      : '${AppConfig.money(AppConfig.yearlyPrice)} per year';
+  String get chosenPriceText => switch (_chosen) {
+        PlanKind.monthly => '${AppConfig.money(AppConfig.monthlyPrice)} per month',
+        PlanKind.lifetime => '${AppConfig.money(AppConfig.lifetimePrice)} once',
+        _ => '${AppConfig.money(AppConfig.yearlyPrice)} per year',
+      };
 
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     final s = p.getString('trial_start');
     _trialStart = s == null ? null : DateTime.tryParse(s);
-    _chosen = p.getString('chosen_plan') == 'monthly' ? PlanKind.monthly : PlanKind.yearly;
+    final c = p.getString('chosen_plan');
+    _chosen = c == 'monthly' ? PlanKind.monthly : (c == 'lifetime' ? PlanKind.lifetime : PlanKind.yearly);
     _paid = p.getBool('paid') ?? false;
     _cancelled = p.getBool('cancelled') ?? false;
     notifyListeners();
@@ -51,16 +55,18 @@ class Billing extends ChangeNotifier {
   Future<void> _save() async {
     final p = await SharedPreferences.getInstance();
     if (_trialStart != null) await p.setString('trial_start', _trialStart!.toIso8601String());
-    await p.setString('chosen_plan', _chosen == PlanKind.monthly ? 'monthly' : 'yearly');
+    await p.setString('chosen_plan', _chosen.name);
     await p.setBool('paid', _paid);
     await p.setBool('cancelled', _cancelled);
   }
 
-  /// Start the free trial (or continue) with the plan the user picked.
-  Future<void> subscribe({required bool annual}) async {
-    _chosen = annual ? PlanKind.yearly : PlanKind.monthly;
+  /// Start the free trial (or buy) with the plan the user picked. Lifetime has no trial.
+  Future<void> subscribe(PlanKind kind) async {
+    _chosen = kind;
     _cancelled = false;
-    if (_trialStart == null) {
+    if (kind == PlanKind.lifetime) {
+      _paid = true; // one-time purchase: a real store charges once, here
+    } else if (_trialStart == null) {
       _trialStart = DateTime.now();
     } else {
       _paid = true; // trial already used: a real store would charge now

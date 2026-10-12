@@ -18,7 +18,7 @@ void main() {
         await s.recordScan();
       }
       expect(s.canScan, isFalse);
-      await b.subscribe(annual: true);
+      await b.subscribe(PlanKind.yearly);
       expect(b.isPremium, isTrue);
       expect(s.canScan, isTrue);
       expect(b.trialDaysLeft, 7);
