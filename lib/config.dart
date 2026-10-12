@@ -17,11 +17,15 @@ class AppConfig {
   static const termsUrl = '$legalBase/terms.html';
   static const deleteDataUrl = '$legalBase/delete-account.html';
 
-  // Store prices (India launch). Keep in sync with App Store Connect and Play Console.
+  // Store prices in rupees, copied from the closest competitor (FreshKeeper: $8.99 a month,
+  // $19.99 a year) and NoWaste's lifetime price ($29.99), at about Rs 84 per US dollar.
+  // The stores show the final local price. Keep in sync with App Store Connect and Play Console.
+  // Market check from store listings (US dollars, may have changed): NoWaste Pro $6.99/yr, FreshKeeper $8.99/mo and
+  // $19.99/yr, Cooklist $49.99-59.99/yr, Pantry Pal $59.99/yr.
   static const currency = '₹';
-  static const monthlyPrice = 149.0;
-  static const yearlyPrice = 999.0;
-  static const lifetimePrice = 1999.0;
+  static const monthlyPrice = 749.0;
+  static const yearlyPrice = 1699.0;
+  static const lifetimePrice = 2499.0;
   static const trialDays = 7;
 
   /// Share the stores keep. 15% = small business programs. Use 0.30 to be careful.
