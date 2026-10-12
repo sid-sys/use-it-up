@@ -1,0 +1,31 @@
+Use It Up: Food Expiry Tracker
+Copyright (c) 2026 Tetra Developers. All rights reserved.
+
+PROPRIETARY SOURCE-AVAILABLE LICENSE
+
+This repository is public so that people can read it. Reading is the only thing it
+allows. No open-source license is granted.
+
+You MAY:
+  - View and read the source code and assets in this repository.
+  - Clone it to your own computer for personal reading and evaluation only.
+
+You may NOT, without written permission from Tetra Developers:
+  - Copy, modify, merge, publish, distribute, sublicense, sell or host the code,
+    in whole or in part.
+  - Build, publish or distribute the app, or any app derived from it, on any app
+    store or website.
+  - Use the app name "Use It Up", the logo, the design, the screens, text, artwork,
+    legal pages or other assets in your own products or marketing.
+  - Use this repository to train machine learning models.
+  - Remove or change this notice.
+
+Third-party components keep their own licenses. In particular, the fonts in
+assets/fonts (Anton and Inter) are licensed under the SIL Open Font License 1.1 by
+their authors, and the Flutter packages listed in pubspec.yaml are under their own
+licenses.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. TO THE EXTENT THE
+LAW ALLOWS, TETRA DEVELOPERS IS NOT LIABLE FOR ANY CLAIM OR DAMAGES ARISING FROM IT.
+
+To ask for permission: tetraheaddevelopers@gmail.com
