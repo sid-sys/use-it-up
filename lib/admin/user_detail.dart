@@ -66,7 +66,7 @@ class UserDetailScreen extends StatelessWidget {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Paid so far: ${AppConfig.money(user.paidTotal)} in ${user.payments.length} payment${user.payments.length == 1 ? '' : 's'}',
+                  'Paid so far: ${AppConfig.moneyShort(user.paidTotal)} in ${user.payments.length} payment${user.payments.length == 1 ? '' : 's'}',
                   style: body(14, FontWeight.w800),
                 ),
               ),
