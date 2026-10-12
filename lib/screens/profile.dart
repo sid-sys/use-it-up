@@ -82,6 +82,20 @@ class ProfileScreen extends StatelessWidget {
                 value: p.onDay,
                 onChanged: (v) => _set((x) => x.onDay = v),
               ),
+              SwitchListTile(
+                activeTrackColor: charcoal,
+                title: const Text('Weekly overview'),
+                subtitle: const Text('Monday morning: how many items to use soon'),
+                value: p.weekly,
+                onChanged: (v) => _set((x) => x.weekly = v),
+              ),
+              SwitchListTile(
+                activeTrackColor: charcoal,
+                title: const Text('Nudge if I am away'),
+                subtitle: const Text('After 3 days without opening the app'),
+                value: p.reengage,
+                onChanged: (v) => _set((x) => x.reengage = v),
+              ),
             ]),
             if (!Notifier.supported)
               Padding(

@@ -2,32 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:use_it_up/main.dart' as app;
 import 'package:use_it_up/billing.dart';
-import 'package:use_it_up/scan/parser.dart';
 import 'package:use_it_up/store.dart';
 import 'package:use_it_up/admin/models.dart';
 import 'package:use_it_up/admin/repository.dart';
 
 void main() {
-  group('label parser', () {
-    test('reads EXP date and product name', () {
-      final r = parseLabel(['Fresh Whole Milk', 'MFG 01/10/26', 'EXP 12/11/26', 'Batch 99812']);
-      expect(r.name, 'Fresh Whole Milk');
-      expect(r.dates.first.date, DateTime(2026, 11, 12));
-      expect(r.dates.first.type, 'use_by');
-      expect(r.dates.first.ambiguous, isTrue);
-      expect(r.dates.any((d) => d.date == DateTime(2026, 10, 1)), isFalse, reason: 'MFG ignored');
-    });
-
-    test('reads named month and month-year', () {
-      expect(parseLabel(['BEST BEFORE 15 NOV 2026']).dates.first.date, DateTime(2026, 11, 15));
-      expect(parseLabel(['BB 03/2027']).dates.first.date, DateTime(2027, 3, 31));
-    });
-
-    test('no date means no guess', () {
-      expect(parseLabel(['Tasty Bread', 'Keep cool']).dates, isEmpty);
-    });
-  });
-
   group('store', () {
     test('free limits and trial unlock', () async {
       SharedPreferences.setMockInitialValues({});

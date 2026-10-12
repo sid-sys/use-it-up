@@ -1,4 +1,11 @@
 import 'dart:typed_data';
 
 bool get ocrSupported => false;
-Future<List<String>> readTextFromImage(String path, Uint8List? bytes) async => [];
+
+class OcrOutput {
+  final List<String> focus;
+  final List<String> all;
+  OcrOutput(this.focus, this.all);
+}
+
+Future<OcrOutput> readLabel(String path, Uint8List bytes, {List<double>? frame}) async => OcrOutput([], []);

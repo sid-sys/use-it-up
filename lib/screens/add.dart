@@ -8,6 +8,7 @@ import '../scan/parser.dart';
 import '../theme.dart';
 import 'form.dart';
 import 'paywall.dart';
+import 'scan_camera.dart';
 
 class AddScreen extends StatefulWidget {
   const AddScreen({super.key});
@@ -45,10 +46,15 @@ class _AddScreenState extends State<AddScreen> {
           : 'You used your ${AppConfig.freeScans} free scans. Premium adds ${AppConfig.premiumScansPerMonth} scans a month.');
       return;
     }
-    final source = kIsWeb ? ImageSource.gallery : ImageSource.camera;
-    XFile? file;
+    ScanCapture? cap;
     try {
-      file = await ImagePicker().pickImage(source: source, maxWidth: 2000, imageQuality: 90);
+      if (kIsWeb) {
+        final x = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 2000, imageQuality: 90);
+        cap = x == null ? null : ScanCapture(x);
+      } else {
+        cap = await Navigator.of(context)
+            .push<ScanCapture>(MaterialPageRoute(fullscreenDialog: true, builder: (_) => const ScanCameraScreen()));
+      }
     } catch (e) {
       setState(() {
         _message = 'The camera did not open. You can type the date instead.';
@@ -56,7 +62,8 @@ class _AddScreenState extends State<AddScreen> {
       });
       return;
     }
-    if (file == null || !mounted) return;
+    if (cap == null || !mounted) return;
+    final file = cap.file;
     setState(() {
       _busy = true;
       _message = null;
@@ -68,7 +75,8 @@ class _AddScreenState extends State<AddScreen> {
         setState(() => _message = 'Photo scan works in the phone app. Please type it here.');
         return;
       }
-      final lines = await readTextFromImage(file.path, bytes);
+      final out = await readLabel(file.path, bytes, frame: cap.frame);
+      final lines = [...out.focus, ...out.all];
       if (!mounted) return;
       if (lines.isEmpty) {
         setState(() {
@@ -76,7 +84,7 @@ class _AddScreenState extends State<AddScreen> {
         });
         return;
       }
-      final result = parseLabel(lines);
+      final result = parseLabel(out.all, focus: out.focus);
       if (result.dates.isNotEmpty) await store.recordScan(); // failed scans do not use up a scan
       if (!mounted) return;
       // Always open the review screen so the user can fix or type the date.

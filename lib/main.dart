@@ -25,10 +25,34 @@ Future<void> main() async {
   await Notifier.init();
   Analytics.instance.log(Ev.opened);
   runApp(const UseItUpApp());
+  store.refreshGeneralReminders(); // weekly overview + inactivity nudge, counted fresh
 }
 
-class UseItUpApp extends StatelessWidget {
+class UseItUpApp extends StatefulWidget {
   const UseItUpApp({super.key});
+
+  @override
+  State<UseItUpApp> createState() => _UseItUpAppState();
+}
+
+class _UseItUpAppState extends State<UseItUpApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Coming back to the app pushes the "you have been away" nudge out again.
+    if (state == AppLifecycleState.resumed) store.refreshGeneralReminders();
+  }
 
   @override
   Widget build(BuildContext context) {

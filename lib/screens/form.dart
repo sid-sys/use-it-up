@@ -106,7 +106,7 @@ class _FoodFormScreenState extends State<FoodFormScreen> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(color: lime.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(14)),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('We read: "${cand.evidence}"', style: body(14, FontWeight.w700)),
+                    Text('${cand.typeName}: "${cand.evidence}"', style: body(14, FontWeight.w700)),
                     const SizedBox(height: 4),
                     Text(
                       cand.ambiguous

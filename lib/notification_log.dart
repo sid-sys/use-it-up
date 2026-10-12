@@ -6,7 +6,7 @@ enum NotifStatus { scheduled, due, test, cancelled }
 
 class NotifEntry {
   final int id;
-  final String kind; // reminder | test
+  final String kind; // reminder | weekly | inactive | test
   final String title;
   final String body;
   final DateTime createdAt;
@@ -73,7 +73,7 @@ class NotificationLog extends ChangeNotifier {
   }
 
   Future<void> add(NotifEntry e) async {
-    entries.removeWhere((x) => x.id == e.id && x.kind == 'reminder' && e.kind == 'reminder');
+    if (e.kind != 'test') entries.removeWhere((x) => x.id == e.id && x.kind == e.kind);
     entries.insert(0, e);
     if (entries.length > 300) entries.removeRange(300, entries.length);
     notifyListeners();
@@ -83,7 +83,7 @@ class NotificationLog extends ChangeNotifier {
   Future<void> markCancelled(int id) async {
     var changed = false;
     for (final e in entries) {
-      if (e.id == id && e.kind == 'reminder' && !e.cancelled) {
+      if (e.id == id && e.kind != 'test' && !e.cancelled) {
         e.cancelled = true;
         changed = true;
       }

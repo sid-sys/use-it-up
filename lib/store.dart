@@ -5,6 +5,7 @@ import 'analytics.dart';
 import 'billing.dart';
 import 'config.dart';
 import 'models.dart';
+import 'notification_log.dart';
 import 'notifications.dart';
 
 class Store extends ChangeNotifier {
@@ -60,7 +61,8 @@ class Store extends ChangeNotifier {
       threeDays: p.getBool('r3') ?? true,
       oneDay: p.getBool('r1') ?? true,
       onDay: p.getBool('r0') ?? true,
-      weekly: p.getBool('rw') ?? false,
+      weekly: p.getBool('rw2') ?? true,
+      reengage: p.getBool('rg') ?? true,
     );
     _freeScansUsed = p.getInt('free_scans') ?? 0;
     _monthScans = p.getInt('month_scans') ?? 0;
@@ -84,8 +86,13 @@ class Store extends ChangeNotifier {
     await p.setBool('r3', prefs.threeDays);
     await p.setBool('r1', prefs.oneDay);
     await p.setBool('r0', prefs.onDay);
-    await p.setBool('rw', prefs.weekly);
+    await p.setBool('rw2', prefs.weekly);
+    await p.setBool('rg', prefs.reengage);
   }
+
+  /// Re-plans the weekly overview and the inactivity nudge. Call when the app opens
+  /// and after any change to the food list or reminder settings.
+  Future<void> refreshGeneralReminders() => Notifier.refreshGeneral(activeAll, prefs);
 
   Future<void> finishOnboarding() async {
     onboarded = true;
@@ -113,12 +120,14 @@ class Store extends ChangeNotifier {
     Analytics.instance.log(Ev.foodAdded, i.name);
     if (first) await Notifier.requestPermission();
     await Notifier.scheduleFor(i, prefs);
+    await refreshGeneralReminders();
   }
 
   Future<void> update(FoodItem i) async {
     await _save();
     notifyListeners();
     await Notifier.scheduleFor(i, prefs);
+    await refreshGeneralReminders();
   }
 
   Future<void> markUsed(FoodItem i) async {
@@ -128,6 +137,7 @@ class Store extends ChangeNotifier {
     notifyListeners();
     Analytics.instance.log(Ev.foodUsed, i.name);
     await Notifier.cancelFor(i);
+    await refreshGeneralReminders();
   }
 
   Future<void> restoreItem(FoodItem i) async {
@@ -136,6 +146,7 @@ class Store extends ChangeNotifier {
     await _save();
     notifyListeners();
     await Notifier.scheduleFor(i, prefs);
+    await refreshGeneralReminders();
   }
 
   Future<void> delete(FoodItem i) async {
@@ -143,6 +154,7 @@ class Store extends ChangeNotifier {
     await _save();
     notifyListeners();
     await Notifier.cancelFor(i);
+    await refreshGeneralReminders();
   }
 
   Future<void> setPrefs(ReminderPrefs p) async {
@@ -150,13 +162,13 @@ class Store extends ChangeNotifier {
     await _save();
     notifyListeners();
     await Notifier.rescheduleAll(activeAll, prefs);
+    await refreshGeneralReminders();
   }
 
   /// Erase everything saved on this device.
   Future<void> deleteAllData() async {
-    for (final i in List.of(_items)) {
-      await Notifier.cancelFor(i);
-    }
+    await Notifier.cancelAll();
+    await NotificationLog.instance.clear();
     _items.clear();
     _freeScansUsed = 0;
     _monthScans = 0;
