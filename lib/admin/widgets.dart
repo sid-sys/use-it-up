@@ -91,7 +91,7 @@ class MetricCard extends StatelessWidget {
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: Text(title, style: body(13, FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Expanded(child: Text(title, style: body(13, FontWeight.w700), maxLines: 2, overflow: TextOverflow.ellipsis)),
           Text(emoji, style: const TextStyle(fontSize: 18)),
         ]),
         const Spacer(),

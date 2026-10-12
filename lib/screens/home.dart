@@ -223,7 +223,7 @@ class _Group extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(20)),
-            child: Text('${items.length} items', style: body(12, FontWeight.w700)),
+            child: Text(items.length == 1 ? '1 item' : '${items.length} items', style: body(12, FontWeight.w700)),
           ),
         ]),
         Text(sub, style: body(13, FontWeight.w400, Colors.black54)),

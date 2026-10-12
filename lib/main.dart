@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'analytics.dart';
 import 'billing.dart';
 import 'notification_log.dart';
@@ -14,6 +15,7 @@ late final Store store;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   billing = Billing();
   store = Store(billing);
   await billing.load();
