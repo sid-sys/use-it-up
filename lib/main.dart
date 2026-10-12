@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'analytics.dart';
+import 'auth.dart';
 import 'billing.dart';
 import 'notification_log.dart';
 import 'notifications.dart';
 import 'screens/home.dart';
 import 'screens/onboarding.dart';
+import 'screens/splash.dart';
 import 'screens/profile.dart';
 import 'store.dart';
 import 'theme.dart';
@@ -20,6 +22,7 @@ Future<void> main() async {
   store = Store(billing);
   await billing.load();
   await store.load();
+  await Auth.instance.load();
   await Analytics.instance.load();
   await NotificationLog.instance.load();
   await Notifier.init();
@@ -60,10 +63,41 @@ class _UseItUpAppState extends State<UseItUpApp> with WidgetsBindingObserver {
       title: 'Use It Up: Food Expiry Tracker',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
-      home: ListenableBuilder(
-        listenable: store,
-        builder: (_, _) => store.onboarded ? const Shell() : const OnboardingScreen(),
-      ),
+      home: const _Gate(),
+    );
+  }
+}
+
+/// Brand splash for a moment, then onboarding (first run) or Home.
+class _Gate extends StatefulWidget {
+  const _Gate();
+
+  @override
+  State<_Gate> createState() => _GateState();
+}
+
+class _GateState extends State<_Gate> {
+  bool _splash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(milliseconds: 1600), () {
+      if (mounted) setState(() => _splash = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      child: _splash
+          ? const SplashScreen(key: ValueKey('splash'))
+          : ListenableBuilder(
+              key: const ValueKey('app'),
+              listenable: store,
+              builder: (_, _) => store.onboarded ? const Shell() : const OnboardingFlow(),
+            ),
     );
   }
 }

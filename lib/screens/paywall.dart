@@ -3,10 +3,15 @@ import '../analytics.dart';
 import '../config.dart';
 import '../main.dart';
 import '../theme.dart';
+import 'profile.dart' show openUrl;
 
+/// Soft paywall. Always dismissible. X and "Maybe later" do the same thing.
+/// [onClose] lets the onboarding flow take over closing; otherwise the screen just pops.
 class PaywallScreen extends StatefulWidget {
   final String? reason;
-  const PaywallScreen({super.key, this.reason});
+  final bool fromOnboarding;
+  final VoidCallback? onClose;
+  const PaywallScreen({super.key, this.reason, this.fromOnboarding = false, this.onClose});
 
   @override
   State<PaywallScreen> createState() => _PaywallScreenState();
@@ -14,11 +19,48 @@ class PaywallScreen extends StatefulWidget {
 
 class _PaywallScreenState extends State<PaywallScreen> {
   bool _annual = true;
+  bool _busy = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    Analytics.instance.log(Ev.paywallView, widget.reason ?? "opened");
+    Analytics.instance.log(Ev.paywallView, widget.reason ?? (widget.fromOnboarding ? 'onboarding' : 'opened'));
+  }
+
+  void _close() {
+    if (widget.onClose != null) {
+      widget.onClose!();
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  /// Nothing is charged until the store confirms the purchase.
+  /// Live build: call the store purchase sheet here (RevenueCat) and only then mark Premium.
+  Future<void> _buy() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      Analytics.instance.log(Ev.paymentAttempt, _annual ? 'yearly' : 'monthly');
+      final trial = !billing.trialUsed;
+      await billing.subscribe(annual: _annual);
+      Analytics.instance.log(Ev.subscribed, '${trial ? 'trial ' : ''}${_annual ? 'yearly' : 'monthly'}');
+      if (!mounted) return;
+      if (widget.onClose == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Premium is on. Enjoy!')));
+      }
+      _close();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = 'The purchase did not go through. You have not been charged. Please try again.';
+        });
+      }
+    }
   }
 
   @override
@@ -29,47 +71,37 @@ class _PaywallScreenState extends State<PaywallScreen> {
           listenable: billing,
           builder: (context, _) {
             final canTrial = !billing.trialUsed;
+            final price = _annual
+                ? '${AppConfig.money(AppConfig.yearlyPrice)} / year'
+                : '${AppConfig.money(AppConfig.monthlyPrice)} / month';
             return Column(children: [
               Align(
                 alignment: Alignment.centerRight,
-                child: IconButton(
-                  tooltip: 'Close',
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
+                child: IconButton(tooltip: 'Close', icon: const Icon(Icons.close), onPressed: _close),
               ),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(color: lime, borderRadius: BorderRadius.circular(30)),
-                        child: Text('USE IT UP PREMIUM', style: body(13, FontWeight.w700)),
-                      ),
-                    ),
-                    Text('YOUR FOOD\nDESERVES A\nSECOND CHANCE.', style: display(44)),
+                    Text('WASTE LESS.\nSTRESS LESS.', style: display(44)),
                     const SizedBox(height: 10),
                     if (widget.reason != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(widget.reason!, style: body(15, FontWeight.w700)),
                       ),
-                    Text('Waste less. Remember everything. Spend smarter.', style: body(17)),
+                    Text('Let Use It Up do the remembering for you.', style: body(17)),
                     const SizedBox(height: 20),
-                    const _Feature('AI expiry scanning', '100 photo scans a month. Check and edit every date.'),
-                    const _Feature('Unlimited food items', 'Free is up to 20 items at a time.'),
-                    const _Feature('Smarter reminders', 'Choose when you get nudged.'),
-                    const _Feature('Full history', 'Free keeps the last 7 days.'),
-                    const SizedBox(height: 16),
+                    const _Feature('AI expiry scanning', 'Add food from a photo.'),
+                    const _Feature('Unlimited food tracking', 'Keep your entire fridge organized.'),
+                    const _Feature('Personalized reminders', 'Know what needs attention.'),
+                    if (canTrial) _Feature('${AppConfig.trialDays}-day free trial', 'Try Premium before you pay.'),
+                    const SizedBox(height: 14),
                     _Plan(
                       selected: _annual,
-                      title: 'Annual',
-                      price: '${AppConfig.money(AppConfig.yearlyPrice)}/year',
-                      sub: 'About ${AppConfig.money(AppConfig.yearlyPrice / 12)} a month${canTrial ? '. 7 days free' : ''}',
+                      title: 'Premium',
+                      price: '${AppConfig.money(AppConfig.yearlyPrice)} / year',
+                      sub: 'About ${AppConfig.money(AppConfig.yearlyPrice / 12)} a month',
                       badge: 'BEST VALUE',
                       onTap: () => setState(() => _annual = true),
                     ),
@@ -77,17 +109,29 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     _Plan(
                       selected: !_annual,
                       title: 'Monthly',
-                      price: '${AppConfig.money(AppConfig.monthlyPrice)}/month',
+                      price: '${AppConfig.money(AppConfig.monthlyPrice)} / month',
                       sub: 'Cancel any time',
                       onTap: () => setState(() => _annual = false),
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      canTrial && _annual
-                          ? '₹0 today, then ${AppConfig.money(AppConfig.yearlyPrice)} per year after the 7-day trial unless you cancel. Final price and terms are shown by the store.'
-                          : 'Renews automatically at ${_annual ? '${AppConfig.money(AppConfig.yearlyPrice)} per year' : '${AppConfig.money(AppConfig.monthlyPrice)} per month'} unless you cancel in your store account settings.',
+                      canTrial
+                          ? '${AppConfig.money(0)} today, then $price after your ${AppConfig.trialDays}-day trial. Cancel before renewal to avoid the charge.'
+                          : 'Renews automatically at $price unless you cancel in your store account settings. The store shows the final price.',
                       style: body(12.5, FontWeight.w400, Colors.black54),
                     ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(14)),
+                        child: Row(children: [
+                          const Icon(Icons.error_outline, color: redDark),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(_error!, style: body(13.5))),
+                        ]),
+                      ),
+                    ],
                     const SizedBox(height: 14),
                   ],
                 ),
@@ -97,19 +141,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 child: Column(children: [
                   FilledButton(
                     style: limeButton(),
-                    onPressed: () async {
-                      // Replace with a RevenueCat purchase call for live billing.
-                      Analytics.instance.log(Ev.paymentAttempt, _annual ? "yearly" : "monthly");
-                      await billing.subscribe(annual: _annual);
-                      Analytics.instance.log(Ev.subscribed, (canTrial ? "trial " : "") + (_annual ? "yearly" : "monthly"));
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Premium is on. Enjoy your 7 days.')));
-                      }
-                    },
-                    child: Text(canTrial ? 'Start my 7-day free trial' : 'Continue'),
+                    onPressed: _busy ? null : _buy,
+                    child: _busy
+                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: charcoal))
+                        : Text(_error != null ? 'Try again' : (canTrial ? 'Start free trial' : 'Subscribe')),
                   ),
+                  const SizedBox(height: 4),
+                  TextButton(onPressed: _busy ? null : _close, child: Text('Maybe later', style: body(15.5, FontWeight.w700))),
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     TextButton(
                         onPressed: () async {
@@ -121,9 +159,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         },
                         child: const Text('Restore purchases')),
                     const Text('·'),
-                    TextButton(onPressed: () {}, child: const Text('Terms')),
+                    TextButton(onPressed: () => openUrl(context, AppConfig.termsUrl), child: const Text('Terms')),
                     const Text('·'),
-                    TextButton(onPressed: () {}, child: const Text('Privacy')),
+                    TextButton(onPressed: () => openUrl(context, AppConfig.privacyUrl), child: const Text('Privacy')),
                   ]),
                 ]),
               ),
@@ -189,21 +227,19 @@ class _Plan extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
+              Wrap(spacing: 8, runSpacing: 2, crossAxisAlignment: WrapCrossAlignment.center, children: [
                 Text(title, style: body(17, FontWeight.w800)),
-                if (badge != null) ...[
-                  const SizedBox(width: 8),
+                if (badge != null)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: charcoal, borderRadius: BorderRadius.circular(8)),
                     child: Text(badge!, style: body(10, FontWeight.w700, Colors.white)),
                   ),
-                ],
               ]),
               Text(sub, style: body(13)),
             ]),
           ),
-          Text(price, style: body(16, FontWeight.w800)),
+          Text(price, style: body(15, FontWeight.w800)),
         ]),
       ),
     );

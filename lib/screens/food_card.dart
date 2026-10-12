@@ -1,11 +1,24 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../main.dart';
 import '../models.dart';
 import '../theme.dart';
 import 'details.dart';
 
 const expiredTint = Color(0xFFEAF2D2);
+
+/// One tap from the card. A snackbar offers Undo for a few seconds.
+void markUsedWithUndo(BuildContext context, FoodItem item) {
+  final messenger = ScaffoldMessenger.of(context);
+  store.markUsed(item);
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(
+      content: Text('${item.name} marked as used'),
+      action: SnackBarAction(label: 'Undo', onPressed: () => store.restoreItem(item)),
+    ));
+}
 
 class FoodCard extends StatelessWidget {
   final FoodItem item;
@@ -76,6 +89,13 @@ class FoodCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(daysLabel(d), style: body(13, FontWeight.w700, color)),
                 ]),
+              if (!item.used)
+                IconButton(
+                  tooltip: 'Mark as used',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.check_circle_outline),
+                  onPressed: () => markUsedWithUndo(context, item),
+                ),
             ]),
           ),
         ),

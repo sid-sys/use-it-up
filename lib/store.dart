@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'analytics.dart';
+import 'auth.dart';
 import 'billing.dart';
 import 'config.dart';
 import 'models.dart';
@@ -19,6 +20,13 @@ class Store extends ChangeNotifier {
   String _scanMonth = '';
   bool onboarded = false;
   bool loaded = false;
+
+  // Onboarding progress and answers. Saved after every step so a closed app resumes.
+  int onbStep = 0;
+  String? problem; // what usually gets forgotten
+  String? household; // just_me | two | three_four | five_plus
+  String remindWhen = 'both'; // three | one | both
+  bool notifAsked = false;
 
   List<FoodItem> _sorted(Iterable<FoodItem> l) => l.toList()..sort((a, b) => a.expiry.compareTo(b.expiry));
 
@@ -72,6 +80,11 @@ class Store extends ChangeNotifier {
       _monthScans = 0;
     }
     onboarded = p.getBool('onboarded') ?? false;
+    onbStep = p.getInt('onb_step') ?? 0;
+    problem = p.getString('onb_problem');
+    household = p.getString('onb_household');
+    remindWhen = p.getString('onb_remind') ?? 'both';
+    notifAsked = p.getBool('notif_asked') ?? false;
     loaded = true;
     notifyListeners();
   }
@@ -83,6 +96,19 @@ class Store extends ChangeNotifier {
     await p.setInt('month_scans', _monthScans);
     await p.setString('scan_month', _scanMonth);
     await p.setBool('onboarded', onboarded);
+    await p.setInt('onb_step', onbStep);
+    if (problem == null) {
+      await p.remove('onb_problem');
+    } else {
+      await p.setString('onb_problem', problem!);
+    }
+    if (household == null) {
+      await p.remove('onb_household');
+    } else {
+      await p.setString('onb_household', household!);
+    }
+    await p.setString('onb_remind', remindWhen);
+    await p.setBool('notif_asked', notifAsked);
     await p.setBool('r3', prefs.threeDays);
     await p.setBool('r1', prefs.oneDay);
     await p.setBool('r0', prefs.onDay);
@@ -93,6 +119,24 @@ class Store extends ChangeNotifier {
   /// Re-plans the weekly overview and the inactivity nudge. Call when the app opens
   /// and after any change to the food list or reminder settings.
   Future<void> refreshGeneralReminders() => Notifier.refreshGeneral(activeAll, prefs);
+
+  /// Save onboarding progress and answers. Pass only what changed.
+  Future<void> saveOnboarding({int? step, String? problem, String? household, String? remindWhen, bool? notifAsked}) async {
+    if (step != null) onbStep = step;
+    if (problem != null) this.problem = problem;
+    if (household != null) this.household = household;
+    if (remindWhen != null) this.remindWhen = remindWhen;
+    if (notifAsked != null) this.notifAsked = notifAsked;
+    await _save();
+  }
+
+  /// Turn the "when should we remind you" answer into real reminder settings.
+  Future<void> applyRemindChoice() async {
+    final p = prefs;
+    p.threeDays = remindWhen == 'three' || remindWhen == 'both';
+    p.oneDay = remindWhen == 'one' || remindWhen == 'both';
+    await setPrefs(p);
+  }
 
   Future<void> finishOnboarding() async {
     onboarded = true;
@@ -118,7 +162,11 @@ class Store extends ChangeNotifier {
     await _save();
     notifyListeners();
     Analytics.instance.log(Ev.foodAdded, i.name);
-    if (first) await Notifier.requestPermission();
+    if (first && !notifAsked) {
+      notifAsked = true;
+      await _save();
+      await Notifier.requestPermission();
+    }
     await Notifier.scheduleFor(i, prefs);
     await refreshGeneralReminders();
   }
@@ -173,6 +221,12 @@ class Store extends ChangeNotifier {
     _freeScansUsed = 0;
     _monthScans = 0;
     onboarded = false;
+    onbStep = 0;
+    problem = null;
+    household = null;
+    remindWhen = 'both';
+    notifAsked = false;
+    await Auth.instance.signOut();
     final p = await SharedPreferences.getInstance();
     await p.clear();
     await billing.reset();

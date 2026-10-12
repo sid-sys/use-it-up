@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../config.dart';
 import '../main.dart';
 import '../models.dart';
 import '../theme.dart';
@@ -36,70 +38,196 @@ class _HomeScreenState extends State<HomeScreen> {
         final fresh = _filter(store.fresh);
         final expired = _filter(store.expired);
         final used = _filter(store.usedItems, useDay: false);
-        return DefaultTabController(
-          length: 3,
-          child: Scaffold(
-            floatingActionButton: FloatingActionButton.extended(
-              backgroundColor: lime,
-              foregroundColor: charcoal,
-              elevation: 0,
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddScreen())),
-              icon: const Icon(Icons.add),
-              label: Text('Add food', style: body(16, FontWeight.w600)),
-            ),
-            body: Column(children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
-                child: Row(children: [
-                  Expanded(child: Text('MY FOOD', style: display(38))),
-                  IconButton.filled(
-                    style: IconButton.styleFrom(backgroundColor: cardWhite, foregroundColor: charcoal),
-                    tooltip: 'Search',
-                    icon: Icon(_searching ? Icons.close : Icons.search),
-                    onPressed: () => setState(() {
-                      _searching = !_searching;
-                      if (!_searching) _query = '';
-                    }),
-                  ),
-                ]),
-              ),
-              if (_searching)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                  child: TextField(
-                    autofocus: true,
-                    onChanged: (v) => setState(() => _query = v),
-                    decoration: const InputDecoration(hintText: 'Search your food', prefixIcon: Icon(Icons.search)),
-                  ),
-                ),
-              _WeekStrip(
-                selected: _day,
-                onPick: (d) => setState(() => _day = (_day != null && _day == d) ? null : d),
-              ),
-              TabBar(
-                labelColor: charcoal,
-                unselectedLabelColor: Colors.black54,
-                indicatorColor: charcoal,
-                dividerColor: Colors.transparent,
-                labelStyle: body(15, FontWeight.w800),
-                unselectedLabelStyle: body(15, FontWeight.w600),
-                tabs: [
-                  Tab(text: 'Foods ${store.fresh.length}'),
-                  Tab(text: 'Expired ${store.expired.length}'),
-                  Tab(text: 'Used ${store.usedItems.length}'),
-                ],
-              ),
+        final nothingYet = store.activeAll.isEmpty && store.usedCount == 0;
+        final attention = store.fresh.where((i) => i.daysLeft() <= 3).length + store.expired.length;
+
+        final header = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(
-                child: TabBarView(children: [
-                  _FoodsTab(items: fresh, empty: store.fresh.isEmpty),
-                  _ExpiredTab(items: expired),
-                  _UsedTab(items: used),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(DateFormat('EEEE, MMMM d').format(DateTime.now()).toUpperCase(),
+                      style: body(12, FontWeight.w800, Colors.black54).copyWith(letterSpacing: 1.1)),
+                  const SizedBox(height: 4),
+                  Text('YOUR FRIDGE,\nSORTED.', style: display(38)),
                 ]),
               ),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                IconButton.filled(
+                  style: IconButton.styleFrom(backgroundColor: cardWhite, foregroundColor: charcoal),
+                  tooltip: 'Search',
+                  icon: Icon(_searching ? Icons.close : Icons.search),
+                  onPressed: () => setState(() {
+                    _searching = !_searching;
+                    if (!_searching) _query = '';
+                  }),
+                ),
+                if (!billing.isPremium)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8, top: 4),
+                    child: Text('${store.fresh.length}/${AppConfig.freeItemLimit} items',
+                        style: body(12, FontWeight.w600, Colors.black54)),
+                  ),
+              ]),
             ]),
           ),
+          if (_searching)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+              child: TextField(
+                autofocus: true,
+                onChanged: (v) => setState(() => _query = v),
+                decoration: const InputDecoration(hintText: 'Search your food', prefixIcon: Icon(Icons.search)),
+              ),
+            ),
+          if (attention > 0)
+            Container(
+              margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: lime, borderRadius: BorderRadius.circular(20)),
+              child: Row(children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('NEEDS YOUR ATTENTION', style: body(11.5, FontWeight.w800).copyWith(letterSpacing: 1.1)),
+                    const SizedBox(height: 2),
+                    Text(attention == 1 ? '1 item' : '$attention items', style: display(30)),
+                    Text('Check these before they expire.', style: body(13.5)),
+                  ]),
+                ),
+                const Icon(Icons.notifications_active_outlined, size: 30),
+              ]),
+            ),
+          _WeekStrip(
+            selected: _day,
+            onPick: (d) => setState(() => _day = (_day != null && _day == d) ? null : d),
+          ),
+        ]);
+
+        final addButton = Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Material(
+            color: lime,
+            elevation: 3,
+            shadowColor: Colors.black26,
+            borderRadius: BorderRadius.circular(22),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(22),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddScreen())),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                child: Row(children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: const BoxDecoration(color: charcoal, shape: BoxShape.circle),
+                    child: const Icon(Icons.add, color: lime, size: 26),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                      Text('Add food', style: body(17, FontWeight.w800)),
+                      Text('Scan a label or enter a date', style: body(12.5)),
+                    ]),
+                  ),
+                  const Icon(Icons.photo_camera_outlined),
+                ]),
+              ),
+            ),
+          ),
+        );
+
+        return Scaffold(
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+          floatingActionButton: addButton,
+          body: nothingYet
+              ? ListView(padding: const EdgeInsets.only(bottom: 120), children: [header, const _FirstFood()])
+              : DefaultTabController(
+                  length: 3,
+                  child: NestedScrollView(
+                    headerSliverBuilder: (context, _) => [
+                      SliverToBoxAdapter(child: header),
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _TabsDelegate(TabBar(
+                          labelColor: charcoal,
+                          unselectedLabelColor: Colors.black54,
+                          indicatorColor: charcoal,
+                          dividerColor: Colors.transparent,
+                          labelStyle: body(15, FontWeight.w800),
+                          unselectedLabelStyle: body(15, FontWeight.w600),
+                          tabs: [
+                            Tab(text: 'Foods ${store.fresh.length}'),
+                            Tab(text: 'Expired ${store.expired.length}'),
+                            Tab(text: 'Used ${store.usedItems.length}'),
+                          ],
+                        )),
+                      ),
+                    ],
+                    body: TabBarView(children: [
+                      _FoodsTab(items: fresh, empty: store.fresh.isEmpty),
+                      _ExpiredTab(items: expired),
+                      _UsedTab(items: used),
+                    ]),
+                  ),
+                ),
         );
       },
+    );
+  }
+}
+
+class _TabsDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar bar;
+  _TabsDelegate(this.bar);
+
+  @override
+  double get minExtent => bar.preferredSize.height;
+  @override
+  double get maxExtent => bar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => ColoredBox(color: ivory, child: bar);
+
+  @override
+  bool shouldRebuild(_TabsDelegate old) => true;
+}
+
+/// Friendly empty state, with a tip that depends on the onboarding answer.
+class _FirstFood extends StatelessWidget {
+  const _FirstFood();
+
+  String get _tip => switch (store.problem) {
+        'forget_fridge' => "Add what's in your fridge once. We'll remember it for you.",
+        'expires_first' => "We'll nudge you before food runs out of time.",
+        'buy_more' => 'Seeing everything in one list helps you buy only what you need.',
+        'leftovers' => 'Add leftovers with a date, so they do not get lost at the back.',
+        _ => 'Add your first food. It takes seconds.',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+      child: Column(children: [
+        Container(
+          width: 170,
+          height: 170,
+          decoration: const BoxDecoration(color: lime, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: const Text('🥬🥛\n🍓🧀', textAlign: TextAlign.center, style: TextStyle(fontSize: 46, height: 1.15)),
+        ),
+        const SizedBox(height: 22),
+        Text('YOUR FRIDGE IS EMPTY', style: display(26), textAlign: TextAlign.center),
+        const SizedBox(height: 8),
+        Text(_tip, textAlign: TextAlign.center, style: body(16)),
+        const SizedBox(height: 22),
+        FilledButton(
+          style: darkButton(),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddScreen())),
+          child: const Text('Add your first food'),
+        ),
+      ]),
     );
   }
 }

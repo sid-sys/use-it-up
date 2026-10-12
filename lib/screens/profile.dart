@@ -32,7 +32,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([store, billing]),
+      listenable: Listenable.merge([store, billing, Auth.instance]),
       builder: (context, _) {
         final p = store.prefs;
         return ListView(
@@ -143,6 +143,12 @@ class ProfileScreen extends StatelessWidget {
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () => openUrl(context, 'mailto:${AppConfig.contactEmail}'),
               ),
+              if (Auth.signedIn)
+                ListTile(
+                  leading: const Icon(Icons.logout),
+                  title: const Text('Sign out'),
+                  onTap: () => Auth.instance.signOut(),
+                ),
               ListTile(
                 leading: const Icon(Icons.delete_forever_outlined, color: redDark),
                 title: const Text('Delete my data', style: TextStyle(color: redDark)),

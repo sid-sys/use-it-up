@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -26,7 +27,7 @@ class ReminderPrefs {
 class Notifier {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static bool _ready = false;
-  static bool get supported => !kIsWeb;
+  static bool get supported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   static Future<void> init() async {
     if (!supported || _ready) return;
@@ -37,7 +38,7 @@ class Notifier {
     } catch (_) {}
     await _plugin.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        android: AndroidInitializationSettings('ic_stat_useitup'),
         iOS: DarwinInitializationSettings(
           requestAlertPermission: false,
           requestBadgePermission: false,
@@ -49,15 +50,17 @@ class Notifier {
   }
 
   /// Ask when the first item is added, when the value is obvious.
-  static Future<void> requestPermission() async {
-    if (!supported) return;
+  /// Returns true if the user allowed notifications.
+  static Future<bool> requestPermission() async {
+    if (!supported) return false;
     await init();
-    await _plugin
+    final ios = await _plugin
         .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
         ?.requestPermissions(alert: true, badge: true, sound: true);
-    await _plugin
+    final android = await _plugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
+    return (ios ?? android ?? false) == true;
   }
 
   static const _details = NotificationDetails(
