@@ -16,12 +16,7 @@ Future<void> loadFonts() async {
 
 Map<String, dynamic> item(String id, String name, int daysFromNow, {String? storage}) {
   final d = DateTime.now().add(Duration(days: daysFromNow));
-  return FoodItem(
-    id: id,
-    name: name,
-    expiry: DateTime(d.year, d.month, d.day),
-    storage: storage,
-  ).toJson();
+  return FoodItem(id: id, name: name, expiry: DateTime(d.year, d.month, d.day), storage: storage).toJson();
 }
 
 void main() {
@@ -38,7 +33,7 @@ void main() {
     expect(ShelfGroup.eatFirst.sub, 'Lasts up to 7 days');
   });
 
-  testWidgets('Home shows the three groups with the fruit bowl art', (tester) async {
+  testWidgets('Home shows group cards with pills. Foods tab holds the three lists', (tester) async {
     tester.view.physicalSize = const Size(1080, 3200);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -46,6 +41,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'onboarded': true,
       'items': jsonEncode([
+        item('0', 'Cucumber', -2, storage: 'Cut'),
         item('1', 'Spinach', 0),
         item('2', 'Greek yogurt', 1),
         item('3', 'Strawberries', 3),
@@ -61,27 +57,51 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle();
 
+    // Home: pills in every group
+    final list = find.byType(Scrollable).first;
     expect(find.text('Eat me first'), findsOneWidget);
     expect(find.text('Lasts up to 7 days'), findsOneWidget);
     expect(find.text('ASAP 2'), findsOneWidget);
     expect(find.text('This week 1'), findsOneWidget);
-    final list = find.descendant(of: find.byType(TabBarView), matching: find.byType(Scrollable)).first;
+    expect(find.text('spinach'), findsOneWidget);
+    expect(find.text('greek yogurt'), findsOneWidget);
     await tester.dragUntilVisible(find.text('Still fresh'), list, const Offset(0, -150));
-    expect(find.text('Still fresh'), findsOneWidget);
+    expect(find.text('Check before toss'), findsOneWidget);
+    expect(find.text('cucumber'), findsOneWidget);
+    expect(find.text('cut'), findsOneWidget);
     expect(find.text('Lasts 1–4 weeks'), findsOneWidget);
     expect(find.text('cheddar cheese'), findsOneWidget);
     expect(find.text('frozen'), findsOneWidget);
-
     await tester.dragUntilVisible(find.text('Full inventory'), list, const Offset(0, -150));
     expect(find.text('Long keepers'), findsOneWidget);
     expect(find.text('Lasts 1–12 months'), findsOneWidget);
     expect(find.text('canned'), findsOneWidget);
-    expect(find.text('Full inventory'), findsOneWidget);
 
-    // Full inventory opens the group list.
+    // Full inventory opens the group list, then back.
     await tester.tap(find.text('Full inventory'));
     await tester.pumpAndSettle();
     expect(find.text('LONG KEEPERS'), findsOneWidget);
     expect(find.text('Rice'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // Foods nav item: the three tabs live here
+    await tester.tap(find.text('Foods'));
+    await tester.pumpAndSettle();
+    expect(find.text('ALL YOUR FOOD'), findsOneWidget);
+    expect(find.text('Foods 7'), findsOneWidget);
+    expect(find.text('Expired 1'), findsOneWidget);
+    expect(find.text('Used 0'), findsOneWidget);
+    await tester.tap(find.text('Expired 1'));
+    await tester.pumpAndSettle();
+    expect(find.text('EXPIRED'), findsOneWidget);
+
+    // Home can open the Expired tab directly
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+    app.openFoods.value = app.FoodsRequest(1);
+    await tester.pumpAndSettle();
+    expect(find.text('ALL YOUR FOOD'), findsOneWidget);
+    expect(find.textContaining('These passed their date'), findsOneWidget);
   });
 }

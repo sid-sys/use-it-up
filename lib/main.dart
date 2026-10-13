@@ -5,6 +5,7 @@ import 'auth.dart';
 import 'billing.dart';
 import 'notification_log.dart';
 import 'notifications.dart';
+import 'screens/foods.dart';
 import 'screens/home.dart';
 import 'screens/onboarding.dart';
 import 'screens/splash.dart';
@@ -102,6 +103,14 @@ class _GateState extends State<_Gate> {
   }
 }
 
+/// Ask the shell to open the Foods tab, on a given sub-tab (0 Foods, 1 Expired, 2 Used).
+class FoodsRequest {
+  final int subTab;
+  FoodsRequest(this.subTab);
+}
+
+final ValueNotifier<FoodsRequest?> openFoods = ValueNotifier(null);
+
 class Shell extends StatefulWidget {
   const Shell({super.key});
 
@@ -111,10 +120,38 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int _tab = 0;
+  int _foodsSub = 0;
+  int _foodsKey = 0; // changes when another screen asks for a specific Foods tab
+
+  @override
+  void initState() {
+    super.initState();
+    openFoods.addListener(_onRequest);
+  }
+
+  @override
+  void dispose() {
+    openFoods.removeListener(_onRequest);
+    super.dispose();
+  }
+
+  void _onRequest() {
+    final r = openFoods.value;
+    if (r == null) return;
+    setState(() {
+      _tab = 1;
+      _foodsSub = r.subTab;
+      _foodsKey++;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    const pages = [HomeScreen(), ProfileScreen()];
+    final pages = [
+      const HomeScreen(),
+      FoodsScreen(key: ValueKey(_foodsKey), initialTab: _foodsSub),
+      const ProfileScreen(),
+    ];
     return Scaffold(
       body: SafeArea(child: pages[_tab]),
       bottomNavigationBar: NavigationBar(
@@ -122,6 +159,7 @@ class _ShellState extends State<Shell> {
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.kitchen_outlined), selectedIcon: Icon(Icons.kitchen), label: 'Foods'),
           NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),

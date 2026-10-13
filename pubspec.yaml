@@ -121,11 +121,12 @@ flutter_launcher_icons:
     background_color: "#F4F3E9"
     theme_color: "#CFFA61"
 
-# Native splash (the first instant). Regenerate: dart run flutter_native_splash:create
+# Native splash (the first instant): plain background only, no logo. The brand artwork
+# splash is shown by the app itself (lib/screens/splash.dart).
+# Regenerate: dart run flutter_native_splash:create
 flutter_native_splash:
-  color: "#F2EFE3"
-  image: assets/brand/splash_icon.png
+  color: "#F2F0E3"
+  image: assets/brand/blank.png
   android_12:
-    color: "#F2EFE3"
-    image: assets/brand/splash_mark.png
-    icon_background_color: "#CFFA61"
+    color: "#F2F0E3"
+    image: assets/brand/blank.png

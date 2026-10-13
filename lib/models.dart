@@ -72,7 +72,7 @@ String daysLabel(int d) {
 
 const _emoji = {
   'milk': '🥛', 'yogurt': '🥛', 'yoghurt': '🥛', 'curd': '🥛', 'cheese': '🧀', 'paneer': '🧀',
-  'butter': '🧈', 'egg': '🥚', 'bread': '🍞', 'bun': '🍞', 'waffle': '🧇', 'pizza': '🍕',
+  'butter': '🧈', 'egg': '🥚', 'bread': '🍞', 'bun': '🍞', 'waffle': '🧇',
   'apple': '🍎', 'banana': '🍌', 'pear': '🍐', 'grape': '🍇', 'orange': '🍊', 'lemon': '🍋',
   'strawberr': '🍓', 'berry': '🫐', 'mango': '🥭', 'tomato': '🍅', 'potato': '🥔', 'onion': '🧅',
   'carrot': '🥕', 'corn': '🌽', 'pepper': '🫑', 'chili': '🌶️', 'cucumber': '🥒', 'lettuce': '🥬',
@@ -80,7 +80,9 @@ const _emoji = {
   'beef': '🥩', 'bacon': '🥓', 'fish': '🐟', 'prawn': '🍤', 'rice': '🍚', 'noodle': '🍜',
   'pasta': '🍝', 'soup': '🥣', 'juice': '🧃', 'honey': '🍯', 'jam': '🍯', 'oats': '🌾',
   'cereal': '🥣', 'biscuit': '🍪', 'cookie': '🍪', 'cake': '🍰', 'chocolate': '🍫', 'ice': '🍨',
-  'peas': '🫛', 'bean': '🫘', 'dal': '🫘', 'nut': '🥜', 'oil': '🫒', 'sauce': '🥫', 'can': '🥫',
+  'peas': '🫛', 'zucchini': '🥒', 'celery': '🥬', 'turkey': '🦃', 'meatball': '🍖', 'dumpling': '🥟',
+  'falafel': '🧆', 'vinegar': '🍶', 'syrup': '🍯', 'rotini': '🍝', 'sausage': '🌭', 'flat bread': '🫓',
+  'peanut': '🥜', 'chickpea': '🫘', 'blueberr': '🫐', 'bean': '🫘', 'dal': '🫘', 'nut': '🥜', 'oil': '🫒', 'sauce': '🥫', 'can': '🥫',
 };
 
 String emojiFor(String name) {
