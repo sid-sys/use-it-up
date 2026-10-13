@@ -31,7 +31,7 @@ class HomeScreen extends StatelessWidget {
         final longKeepers = of(ShelfGroup.longKeepers);
         final expired = store.expired;
         final nothingYet = store.activeAll.isEmpty && store.usedCount == 0;
-        final attention = fresh.where((i) => i.daysLeft() <= 3).length + expired.length;
+        final attention = store.needsAttention.length;
 
         return Scaffold(
           floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -86,7 +86,7 @@ class _Attention extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(20),
-      onTap: () => openFoods.value = FoodsRequest(0),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AttentionScreen())),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: lime, borderRadius: BorderRadius.circular(20)),
@@ -99,7 +99,7 @@ class _Attention extends StatelessWidget {
               Text('Check these before they expire.', style: body(13.5)),
             ]),
           ),
-          const Icon(Icons.notifications_active_outlined, size: 30),
+          const Icon(Icons.arrow_forward, size: 28),
         ]),
       ),
     );

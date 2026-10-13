@@ -27,6 +27,9 @@ class FoodItem {
 
   bool get isExpired => !used && daysLeft() < 0;
 
+  /// Date is within one week, or already passed. Shown in red.
+  bool get isUrgent => !used && daysLeft() <= 7;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
@@ -58,7 +61,7 @@ enum Urgency { expired, today, soon, later }
 Urgency urgencyOf(int days) {
   if (days < 0) return Urgency.expired;
   if (days == 0) return Urgency.today;
-  if (days <= 3) return Urgency.soon;
+  if (days <= 7) return Urgency.soon;
   return Urgency.later;
 }
 

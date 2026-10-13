@@ -31,8 +31,8 @@ class DetailsScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(20)),
                   child: Column(children: [
-                    _Row('Expiry date', DateFormat('EEE, d MMM yyyy').format(item.expiry)),
-                    _Row('Status', daysLabel(d)),
+                    _Row('Expiry date', DateFormat('EEE, d MMM yyyy').format(item.expiry), color: item.isUrgent ? redDark : null),
+                    _Row('Status', daysLabel(d), color: item.isUrgent ? redDark : null),
                     _Row('Quantity', '${item.quantity}'),
                     if (item.storage != null) _Row('Kept in', item.storage!),
                     _Row('Reminders', store.prefs.threeDays || store.prefs.oneDay || store.prefs.onDay ? 'On' : 'Off'),
@@ -116,7 +116,8 @@ class DetailsScreen extends StatelessWidget {
 class _Row extends StatelessWidget {
   final String k;
   final String v;
-  const _Row(this.k, this.v);
+  final Color? color;
+  const _Row(this.k, this.v, {this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +125,7 @@ class _Row extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Text(k, style: body(15, FontWeight.w400, Colors.black54)),
-        Text(v, style: body(16, FontWeight.w700)),
+        Text(v, style: body(16, FontWeight.w700, color ?? charcoal)),
       ]),
     );
   }

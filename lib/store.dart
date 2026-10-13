@@ -37,6 +37,9 @@ class Store extends ChangeNotifier {
   /// Not used and past its date. Shown in the Expired tab.
   List<FoodItem> get expired => _sorted(_items.where((i) => i.isExpired)).reversed.toList();
 
+  /// Past the date, or due within 3 days. This is what the Home attention card counts and opens.
+  List<FoodItem> get needsAttention => [...expired, ...fresh.where((i) => i.daysLeft() <= 3)];
+
   List<FoodItem> get usedItems {
     final list = _items.where((i) => i.used).toList()
       ..sort((a, b) => (b.usedAt ?? b.addedAt).compareTo(a.usedAt ?? a.addedAt));

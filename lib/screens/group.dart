@@ -34,6 +34,34 @@ class GroupScreen extends StatelessWidget {
   }
 }
 
+/// The foods behind the Home "Needs your attention" card: past the date or due in 3 days.
+class AttentionScreen extends StatelessWidget {
+  const AttentionScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final items = store.needsAttention;
+        return Scaffold(
+          appBar: AppBar(title: const Text('NEEDS YOUR ATTENTION')),
+          body: items.isEmpty
+              ? Center(child: Text('All clear. Nothing needs attention.', style: body(16)))
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                  children: [
+                    Text('Check these before they expire.', style: body(14, FontWeight.w400, Colors.black54)),
+                    const SizedBox(height: 14),
+                    for (final i in items) FoodCard(item: i),
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
 /// A small rounded pill: emoji, name, and a tag such as frozen or canned.
 class FoodPill extends StatelessWidget {
   final FoodItem item;

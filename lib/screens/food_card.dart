@@ -31,7 +31,7 @@ class FoodCard extends StatelessWidget {
     final (icon, color) = switch (urgencyOf(d)) {
       Urgency.expired => (Icons.error_outline, redDark),
       Urgency.today => (Icons.warning_amber_rounded, redDark),
-      Urgency.soon => (Icons.schedule, amber),
+      Urgency.soon => (Icons.schedule, redDark),
       Urgency.later => (Icons.event_outlined, charcoal),
     };
     return Padding(
@@ -61,7 +61,9 @@ class FoodCard extends StatelessWidget {
                   Row(children: [
                     Flexible(
                       child: Text(DateFormat('d MMM yyyy').format(item.expiry),
-                          style: body(14, FontWeight.w400, Colors.black54)),
+                          style: item.isUrgent
+                              ? body(14, FontWeight.w700, redDark)
+                              : body(14, FontWeight.w400, Colors.black54)),
                     ),
                     if (item.storage != null) ...[
                       const SizedBox(width: 8),
