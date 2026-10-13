@@ -50,7 +50,14 @@ class Store extends ChangeNotifier {
 
   List<FoodItem> get activeAll => _items.where((i) => !i.used).toList();
   int get usedCount => _items.where((i) => i.used).length;
-  bool get atItemLimit => !billing.isPremium && fresh.length >= AppConfig.freeItemLimit;
+  /// Every food that is not marked used, expired ones included.
+  int get itemCount => activeAll.length;
+  bool get atItemLimit => !billing.isPremium && itemCount >= AppConfig.freeItemLimit;
+
+  /// Foods for one of the four Home cards.
+  List<FoodItem> itemsIn(ShelfGroup g) => g == ShelfGroup.checkBeforeToss
+      ? expired
+      : fresh.where((i) => shelfGroupOf(i.daysLeft()) == g).toList();
 
   bool get canScan => billing.isPremium
       ? _monthScans < AppConfig.premiumScansPerMonth
@@ -125,7 +132,13 @@ class Store extends ChangeNotifier {
   /// Demo foods for MOCK builds. No per-food reminders, so the notification log stays clean.
   Future<void> loadSamples() async {
     if (hasSamples) return;
-    _items.addAll(sampleFoods());
+    // The free plan holds 20 foods, so samples stop at the limit.
+    var room = billing.isPremium ? 1 << 30 : AppConfig.freeItemLimit - itemCount;
+    for (final s in sampleFoods()) {
+      if (room <= 0) break;
+      _items.add(s);
+      room--;
+    }
     await _save();
     notifyListeners();
     await refreshGeneralReminders();

@@ -152,7 +152,29 @@ class _ShellState extends State<Shell> {
       FoodsScreen(key: ValueKey(_foodsKey), initialTab: _foodsSub),
       const ProfileScreen(),
     ];
-    return Scaffold(
+    // Back goes to Home first. On Home it asks before leaving the app.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (_tab != 0) {
+          setState(() => _tab = 0);
+          return;
+        }
+        final leave = await showDialog<bool>(
+          context: context,
+          builder: (c) => AlertDialog(
+            title: const Text('Leave Use It Up?'),
+            content: const Text('Your food and reminders are saved.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Stay')),
+              TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Leave')),
+            ],
+          ),
+        );
+        if (leave == true) SystemNavigator.pop();
+      },
+      child: Scaffold(
       body: SafeArea(child: pages[_tab]),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
@@ -163,6 +185,6 @@ class _ShellState extends State<Shell> {
           NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
-    );
+    ));
   }
 }

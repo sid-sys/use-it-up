@@ -19,6 +19,18 @@ class Auth extends ChangeNotifier {
   static String get displayName => instance._name ?? (instance._email == null ? 'Guest' : instance._email!.split('@').first);
   static bool get signedIn => instance._email != null;
 
+  /// "john.doe42@gmail.com" becomes "John Doe". Used for Google and Apple sign-in.
+  static String nameFromEmail(String email) {
+    final local = email.split('@').first;
+    final words = local
+        .replaceAll(RegExp(r'[0-9]'), '')
+        .split(RegExp(r'[._\-+]+'))
+        .where((w) => w.isNotEmpty)
+        .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+        .toList();
+    return words.isEmpty ? 'Friend' : words.join(' ');
+  }
+
   String? _email;
   String? _name;
   AuthProvider? provider;
@@ -33,7 +45,7 @@ class Auth extends ChangeNotifier {
   }
 
   /// Returns null on success, or a short message to show the user.
-  Future<String?> signIn(AuthProvider p, {String? emailAddress}) async {
+  Future<String?> signIn(AuthProvider p, {String? emailAddress, String? name}) async {
     switch (p) {
       case AuthProvider.guest:
         return _set(null, null, p);
@@ -41,12 +53,14 @@ class Auth extends ChangeNotifier {
         final e = (emailAddress ?? '').trim();
         if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(e)) return 'Please enter a valid email address.';
         // Real build: send a one-time code or link here, and sign in only after it is confirmed.
+        if ((name ?? '').trim().isEmpty) return 'Please enter your name.';
         if (!AppConfig.mock) return 'Email sign-in is not connected yet. You can continue without an account.';
-        return _set(e, null, p);
+        return _set(e, name!.trim(), p);
       case AuthProvider.apple:
       case AuthProvider.google:
         if (!AppConfig.mock) return 'Sign-in with ${p == AuthProvider.apple ? 'Apple' : 'Google'} is not connected yet. You can continue without an account.';
-        return _set('demo.${p.name}@example.com', 'Demo user', p);
+        final demo = 'demo.${p.name}@example.com';
+        return _set(demo, nameFromEmail(demo), p);
     }
   }
 

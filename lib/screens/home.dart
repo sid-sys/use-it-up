@@ -5,17 +5,17 @@ import '../main.dart';
 import '../models.dart';
 import '../theme.dart';
 import '../widgets/fruit_bowl.dart';
+import '../widgets/week_strip.dart';
 import 'add.dart';
 import 'add_food_button.dart';
 import 'group.dart';
 
 const _orange = Color(0xFFF57A1F);
-const _yellow = Color(0xFFF2B600);
 const _green = Color(0xFF7CC242);
 const _sand = Color(0xFFB8B39A);
 
-/// Home: what needs attention, then foods grouped by how long they last.
-/// Each group is a card of small pills (icon + name). The full lists live in Foods.
+/// Home: what needs attention, this week at a glance, and four cards.
+/// A card shows only the label and a count. Tapping it opens every food for that label.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -24,12 +24,6 @@ class HomeScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: store,
       builder: (context, _) {
-        final fresh = store.fresh;
-        List<FoodItem> of(ShelfGroup g) => fresh.where((i) => shelfGroupOf(i.daysLeft()) == g).toList();
-        final eatFirst = of(ShelfGroup.eatFirst);
-        final stillFresh = of(ShelfGroup.stillFresh);
-        final longKeepers = of(ShelfGroup.longKeepers);
-        final expired = store.expired;
         final nothingYet = store.activeAll.isEmpty && store.usedCount == 0;
         final attention = store.needsAttention.length;
 
@@ -51,8 +45,8 @@ class HomeScreen extends StatelessWidget {
                 if (!billing.isPremium)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text('${fresh.length}/${AppConfig.freeItemLimit} items',
-                        style: body(12, FontWeight.w600, Colors.black54)),
+                    child: Text('${store.itemCount}/${AppConfig.freeItemLimit} items',
+                        style: body(12, FontWeight.w600, store.atItemLimit ? redDark : Colors.black54)),
                   ),
               ]),
               if (nothingYet)
@@ -62,12 +56,13 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 14),
                   _Attention(count: attention),
                 ],
-                if (eatFirst.isNotEmpty) _EatFirstCard(items: eatFirst),
-                if (expired.isNotEmpty) _ToastCard(items: expired),
-                if (stillFresh.isNotEmpty)
-                  _ChipGroup(group: ShelfGroup.stillFresh, items: stillFresh, dot: _green),
-                if (longKeepers.isNotEmpty)
-                  _ChipGroup(group: ShelfGroup.longKeepers, items: longKeepers, dot: _sand, fullButton: true),
+                const SizedBox(height: 8),
+                WeekStrip(
+                  selected: null,
+                  onPick: (d) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => DayScreen(date: d))),
+                ),
+                const SizedBox(height: 10),
+                _CardGrid(),
               ],
               if (AppConfig.mock) const _SampleData(),
             ],
@@ -106,170 +101,80 @@ class _Attention extends StatelessWidget {
   }
 }
 
-/// Max pills shown on a card. The rest are one tap away.
-const _maxPills = 12;
+/// Eat me first, Check before toss, Still fresh, Long keepers: two by two.
+class _CardGrid extends StatelessWidget {
+  const _CardGrid();
 
-Widget _pills(BuildContext context, List<FoodItem> items, VoidCallback onMore) {
-  final shown = items.take(_maxPills).toList();
-  return Wrap(spacing: 8, runSpacing: 8, children: [
-    for (final i in shown) FoodPill(item: i),
-    if (items.length > _maxPills)
-      GestureDetector(
-        onTap: onMore,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: const Color(0xFFF4F3EC), borderRadius: BorderRadius.circular(16)),
-          child: Text('+${items.length - _maxPills} more', style: body(13, FontWeight.w700)),
+  @override
+  Widget build(BuildContext context) {
+    // Not const on purpose: the counts must refresh when the food list changes.
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) => _grid(),
+    );
+  }
+
+  Widget _grid() {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 0.78,
+      children: [
+        _GroupCard(group: ShelfGroup.eatFirst, dot: _orange),
+        _GroupCard(group: ShelfGroup.checkBeforeToss, dot: redDark),
+        _GroupCard(group: ShelfGroup.stillFresh, dot: _green),
+        _GroupCard(group: ShelfGroup.longKeepers, dot: _sand),
+      ],
+    );
+  }
+}
+
+class _GroupCard extends StatelessWidget {
+  final ShelfGroup group;
+  final Color dot;
+  const _GroupCard({required this.group, required this.dot});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = store.itemsIn(group);
+    return Material(
+      color: cardWhite,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GroupScreen(group: group))),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.circle, size: 10, color: dot),
+              const SizedBox(width: 6),
+              Text(items.length == 1 ? '1 item' : '${items.length} items', style: body(12.5, FontWeight.w700)),
+            ]),
+            Expanded(child: Center(child: _art(items))),
+            Text(group.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: body(16, FontWeight.w800, charcoal).copyWith(height: 1.15)),
+            Text(group.sub, maxLines: 2, overflow: TextOverflow.ellipsis, style: body(12, FontWeight.w400, Colors.black54)),
+          ]),
         ),
       ),
-  ]);
-}
-
-void _openGroup(BuildContext context, ShelfGroup g) =>
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => GroupScreen(group: g)));
-
-/// "Eat me first": up to 7 days. Pills, the fruit bowl, and ASAP / This week counts.
-class _EatFirstCard extends StatelessWidget {
-  final List<FoodItem> items;
-  const _EatFirstCard({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    final asap = items.where((i) => i.daysLeft() <= 2).length;
-    return Container(
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.fromLTRB(18, 16, 14, 14),
-      decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(26)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: Text(ShelfGroup.eatFirst.title, style: body(22, FontWeight.w800))),
-          _CountPill(count: items.length, dot: _orange),
-        ]),
-        Text(ShelfGroup.eatFirst.sub, style: body(13, FontWeight.w400, Colors.black54)),
-        const SizedBox(height: 12),
-        _pills(context, items, () => _openGroup(context, ShelfGroup.eatFirst)),
-        const SizedBox(height: 6),
-        const Center(child: FruitBowl(width: 200)),
-        Row(children: [
-          _DotLabel('ASAP $asap', _orange),
-          const SizedBox(width: 10),
-          _DotLabel('This week ${items.length - asap}', _yellow),
-          const Spacer(),
-          GestureDetector(onTap: () => _openGroup(context, ShelfGroup.eatFirst), child: const _ArrowButton()),
-        ]),
-      ]),
     );
   }
-}
 
-/// "Check before toss": past the date. Opens the Expired tab in Foods.
-class _ToastCard extends StatelessWidget {
-  final List<FoodItem> items;
-  const _ToastCard({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(26)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: Text('Check before toss', style: body(20, FontWeight.w800))),
-          _CountPill(count: items.length, dot: redDark),
-        ]),
-        Text('Past best-by', style: body(13, FontWeight.w400, Colors.black54)),
-        const SizedBox(height: 14),
-        _pills(context, items, () => openFoods.value = FoodsRequest(1)),
-        const SizedBox(height: 14),
-        Align(
-          alignment: Alignment.centerRight,
-          child: GestureDetector(onTap: () => openFoods.value = FoodsRequest(1), child: const _ArrowButton()),
-        ),
-      ]),
+  /// A picture for the card: the fruit bowl for Eat me first, otherwise the icons of the first foods.
+  Widget _art(List<FoodItem> items) {
+    if (group == ShelfGroup.eatFirst) return const FruitBowl(width: 120);
+    if (items.isEmpty) return const Text('✨', style: TextStyle(fontSize: 34));
+    final emojis = items.take(4).map((i) => emojiFor(i.name)).toList();
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 4,
+      runSpacing: 2,
+      children: [for (final e in emojis) Text(e, style: const TextStyle(fontSize: 28))],
     );
   }
-}
-
-/// "Still fresh" (1 to 4 weeks) and "Long keepers" (1 to 12 months).
-class _ChipGroup extends StatelessWidget {
-  final ShelfGroup group;
-  final List<FoodItem> items;
-  final Color dot;
-  final bool fullButton;
-  const _ChipGroup({required this.group, required this.items, required this.dot, this.fullButton = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(26)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: Text(group.title, style: body(20, FontWeight.w800))),
-          _CountPill(count: items.length, dot: dot),
-        ]),
-        Text(group.sub, style: body(13, FontWeight.w400, Colors.black54)),
-        const SizedBox(height: 14),
-        _pills(context, items, () => _openGroup(context, group)),
-        const SizedBox(height: 14),
-        if (fullButton)
-          FilledButton(
-            style: darkButton().merge(FilledButton.styleFrom(minimumSize: const Size.fromHeight(50))),
-            onPressed: () => _openGroup(context, group),
-            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text('Full inventory'),
-              SizedBox(width: 8),
-              Icon(Icons.arrow_forward, size: 18),
-            ]),
-          )
-        else
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(onTap: () => _openGroup(context, group), child: const _ArrowButton()),
-          ),
-      ]),
-    );
-  }
-}
-
-class _CountPill extends StatelessWidget {
-  final int count;
-  final Color dot;
-  const _CountPill({required this.count, required this.dot});
-
-  @override
-  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.circle, size: 10, color: dot),
-        const SizedBox(width: 6),
-        Text(count == 1 ? '1 item' : '$count items', style: body(12.5, FontWeight.w700)),
-      ]);
-}
-
-class _DotLabel extends StatelessWidget {
-  final String text;
-  final Color color;
-  const _DotLabel(this.text, this.color);
-
-  @override
-  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.circle, size: 9, color: color),
-        const SizedBox(width: 5),
-        Text(text, style: body(12.5, FontWeight.w700)),
-      ]);
-}
-
-class _ArrowButton extends StatelessWidget {
-  const _ArrowButton();
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 48,
-        height: 48,
-        decoration: const BoxDecoration(color: charcoal, shape: BoxShape.circle),
-        child: const Icon(Icons.arrow_forward, color: Colors.white),
-      );
 }
 
 /// Friendly empty state, with a tip that depends on the onboarding answer.
@@ -318,6 +223,11 @@ class _SampleData extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Watches the store itself: this widget is const, so its parent never rebuilds it.
+    return ListenableBuilder(listenable: store, builder: (context, _) => _button());
+  }
+
+  Widget _button() {
     final has = store.hasSamples;
     return Padding(
       padding: const EdgeInsets.only(top: 18),

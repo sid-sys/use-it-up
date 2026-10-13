@@ -24,7 +24,7 @@ class _AddScreenState extends State<AddScreen> {
 
   Future<bool> _checkItemLimit() async {
     if (!store.atItemLimit) return true;
-    await _openPaywall('Free plan holds ${AppConfig.freeItemLimit} items. Premium has no limit.');
+    await _openPaywall('Free plan holds ${AppConfig.freeItemLimit} foods. Upgrade to add more.');
     return false;
   }
 

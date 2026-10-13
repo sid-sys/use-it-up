@@ -175,12 +175,12 @@ class _SignUpState extends State<_SignUp> {
   String? _error;
   bool _busy = false;
 
-  Future<void> _run(AuthProvider p, {String? email}) async {
+  Future<void> _run(AuthProvider p, {String? email, String? name}) async {
     setState(() {
       _busy = true;
       _error = null;
     });
-    final err = await Auth.instance.signIn(p, emailAddress: email);
+    final err = await Auth.instance.signIn(p, emailAddress: email, name: name);
     if (!mounted) return;
     setState(() => _busy = false);
     if (err == null) {
@@ -191,8 +191,9 @@ class _SignUpState extends State<_SignUp> {
   }
 
   Future<void> _emailSheet() async {
+    final nameC = TextEditingController();
     final c = TextEditingController();
-    final email = await showModalBottomSheet<String>(
+    final result = await showModalBottomSheet<(String, String)>(
       context: context,
       isScrollControlled: true,
       backgroundColor: ivory,
@@ -200,24 +201,31 @@ class _SignUpState extends State<_SignUp> {
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(ctx).viewInsets.bottom),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Your email', style: body(20, FontWeight.w800)),
+          Text('Your name and email', style: body(20, FontWeight.w800)),
           const SizedBox(height: 4),
           Text('We will send a one-time code. No password, no phone number.',
               style: body(13.5, FontWeight.w400, Colors.black54)),
           const SizedBox(height: 14),
           TextField(
-            controller: c,
+            controller: nameC,
             autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(hintText: 'Your name'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: c,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(hintText: 'you@example.com'),
-            onSubmitted: (v) => Navigator.pop(ctx, v),
+            onSubmitted: (_) => Navigator.pop(ctx, (nameC.text, c.text)),
           ),
           const SizedBox(height: 14),
-          FilledButton(style: limeButton(), onPressed: () => Navigator.pop(ctx, c.text), child: const Text('Continue')),
+          FilledButton(style: limeButton(), onPressed: () => Navigator.pop(ctx, (nameC.text, c.text)), child: const Text('Continue')),
         ]),
       ),
     );
-    if (email != null && mounted) await _run(AuthProvider.email, email: email);
+    if (result != null && mounted) await _run(AuthProvider.email, name: result.$1, email: result.$2);
   }
 
   @override

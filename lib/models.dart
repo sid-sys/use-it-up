@@ -97,9 +97,11 @@ String emojiFor(String name) {
   return '🍽️';
 }
 
-/// Shelf-life groups on Home.
-/// Eat me first: up to 1 week. Still fresh: 1 to 4 weeks. Long keepers: 1 to 12 months.
-enum ShelfGroup { eatFirst, stillFresh, longKeepers }
+/// The four Home cards.
+/// Eat me first: date within 1 week (including today). Still fresh: 1 to 4 weeks.
+/// Long keepers: 1 to 12 months. Check before toss: the date already passed and the food
+/// is not marked as used (shelfGroupOf never returns it, Store.itemsIn handles it).
+enum ShelfGroup { eatFirst, checkBeforeToss, stillFresh, longKeepers }
 
 ShelfGroup shelfGroupOf(int daysLeft) {
   if (daysLeft <= 7) return ShelfGroup.eatFirst;
@@ -110,12 +112,14 @@ ShelfGroup shelfGroupOf(int daysLeft) {
 extension ShelfGroupText on ShelfGroup {
   String get title => switch (this) {
         ShelfGroup.eatFirst => 'Eat me first',
+        ShelfGroup.checkBeforeToss => 'Check before toss',
         ShelfGroup.stillFresh => 'Still fresh',
         ShelfGroup.longKeepers => 'Long keepers',
       };
 
   String get sub => switch (this) {
         ShelfGroup.eatFirst => 'Lasts up to 7 days',
+        ShelfGroup.checkBeforeToss => 'Past its date, not used yet',
         ShelfGroup.stillFresh => 'Lasts 1–4 weeks',
         ShelfGroup.longKeepers => 'Lasts 1–12 months',
       };

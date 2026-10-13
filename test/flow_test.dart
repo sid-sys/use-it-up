@@ -49,6 +49,7 @@ void main() {
     expect(find.text('Continue without an account'), findsOneWidget);
     await tapText(tester, 'Continue with Google');
     expect(Auth.signedIn, isTrue);
+    expect(Auth.displayName, 'Demo Google'); // name comes from the email
 
     // 3. Question 1: pick, continue
     expect(find.text('1 of 3'), findsOneWidget);

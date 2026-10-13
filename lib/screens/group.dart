@@ -1,35 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../main.dart';
 import '../models.dart';
 import '../theme.dart';
-import 'details.dart';
 import 'food_card.dart';
 
-/// Every food in one shelf-life group, with the same quick actions as Home.
-class GroupScreen extends StatelessWidget {
-  final ShelfGroup group;
-  const GroupScreen({super.key, required this.group});
+/// A full list of foods behind a Home card. Stays in sync with the store.
+class FoodListScreen extends StatelessWidget {
+  final String title;
+  final String sub;
+  final String emptyText;
+  final List<FoodItem> Function() items;
+  const FoodListScreen({super.key, required this.title, required this.sub, required this.emptyText, required this.items});
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: store,
       builder: (context, _) {
-        final items = store.fresh.where((i) => shelfGroupOf(i.daysLeft()) == group).toList();
+        final list = items();
         return Scaffold(
-          appBar: AppBar(title: Text(group.title.toUpperCase())),
-          body: items.isEmpty
-              ? Center(child: Text('Nothing here right now.', style: body(16)))
+          appBar: AppBar(title: Text(title.toUpperCase())),
+          body: list.isEmpty
+              ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(emptyText, textAlign: TextAlign.center, style: body(16))))
               : ListView(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                   children: [
-                    Text(group.sub, style: body(14, FontWeight.w400, Colors.black54)),
+                    Text(sub, style: body(14, FontWeight.w400, Colors.black54)),
                     const SizedBox(height: 14),
-                    for (final i in items) FoodCard(item: i),
+                    for (final i in list) FoodCard(item: i),
                   ],
                 ),
         );
       },
+    );
+  }
+}
+
+/// Foods behind one of the four Home cards.
+class GroupScreen extends StatelessWidget {
+  final ShelfGroup group;
+  const GroupScreen({super.key, required this.group});
+
+  @override
+  Widget build(BuildContext context) {
+    return FoodListScreen(
+      title: group.title,
+      sub: group.sub,
+      emptyText: 'Nothing here right now.',
+      items: () => store.itemsIn(group),
     );
   }
 }
@@ -40,58 +59,31 @@ class AttentionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: store,
-      builder: (context, _) {
-        final items = store.needsAttention;
-        return Scaffold(
-          appBar: AppBar(title: const Text('NEEDS YOUR ATTENTION')),
-          body: items.isEmpty
-              ? Center(child: Text('All clear. Nothing needs attention.', style: body(16)))
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                  children: [
-                    Text('Check these before they expire.', style: body(14, FontWeight.w400, Colors.black54)),
-                    const SizedBox(height: 14),
-                    for (final i in items) FoodCard(item: i),
-                  ],
-                ),
-        );
-      },
+    return FoodListScreen(
+      title: 'Needs your attention',
+      sub: 'Check these before they expire.',
+      emptyText: 'All clear. Nothing needs attention.',
+      items: () => store.needsAttention,
     );
   }
 }
 
-/// A small rounded pill: emoji, name, and a tag such as frozen or canned.
-class FoodPill extends StatelessWidget {
-  final FoodItem item;
-  const FoodPill({super.key, required this.item});
-
-  static const _tags = {'Freezer': 'frozen', 'Canned': 'canned', 'Cut': 'cut', 'Leftover': 'leftover'};
+/// Foods that expire on one day, opened from the week strip on Home.
+class DayScreen extends StatelessWidget {
+  final DateTime date;
+  const DayScreen({super.key, required this.date});
 
   @override
   Widget build(BuildContext context) {
-    final tag = _tags[item.storage];
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => DetailsScreen(item: item))),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-        decoration: BoxDecoration(color: const Color(0xFFF4F3EC), borderRadius: BorderRadius.circular(16)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(emojiFor(item.name), style: const TextStyle(fontSize: 15)),
-          const SizedBox(width: 6),
-          Flexible(child: Text(item.name.toLowerCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: body(13.5, FontWeight.w600))),
-          if (tag != null) ...[
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-              decoration: BoxDecoration(color: const Color(0xFFDDEFF2), borderRadius: BorderRadius.circular(8)),
-              child: Text(tag, style: body(10.5, FontWeight.w600, Colors.black54)),
-            ),
-          ],
-        ]),
-      ),
+    final day = DateTime(date.year, date.month, date.day);
+    return FoodListScreen(
+      title: DateFormat('EEE d MMM').format(day),
+      sub: 'Foods with this date.',
+      emptyText: 'No food has this date.',
+      items: () => store.activeAll
+          .where((i) => DateTime(i.expiry.year, i.expiry.month, i.expiry.day) == day)
+          .toList()
+        ..sort((a, b) => a.name.compareTo(b.name)),
     );
   }
 }

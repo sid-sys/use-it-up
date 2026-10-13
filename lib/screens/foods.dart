@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../models.dart';
 import '../theme.dart';
-import 'add_food_button.dart';
+import '../widgets/week_strip.dart';
 import 'food_card.dart';
 
 /// Every food, in three tabs: Foods (still good), Expired, Used.
@@ -64,9 +64,12 @@ class _FoodsScreenState extends State<FoodsScreen> {
                 decoration: const InputDecoration(hintText: 'Search your food', prefixIcon: Icon(Icons.search)),
               ),
             ),
-          _WeekStrip(
-            selected: _day,
-            onPick: (d) => setState(() => _day = (_day != null && _day == d) ? null : d),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+            child: WeekStrip(
+              selected: _day,
+              onPick: (d) => setState(() => _day = (_day != null && _day == d) ? null : d),
+            ),
           ),
         ]);
 
@@ -74,8 +77,6 @@ class _FoodsScreenState extends State<FoodsScreen> {
           length: 3,
           initialIndex: widget.initialTab.clamp(0, 2),
           child: Scaffold(
-            floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-            floatingActionButton: const AddFoodButton(),
             body: NestedScrollView(
               headerSliverBuilder: (context, _) => [
                 SliverToBoxAdapter(child: header),
@@ -125,70 +126,6 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_TabsDelegate old) => true;
 }
 
-/// Monday to Sunday of this week. A dot means something expires that day. A cross means
-/// something passed its date on that day and is still not used.
-class _WeekStrip extends StatelessWidget {
-  final DateTime? selected;
-  final ValueChanged<DateTime> onPick;
-  const _WeekStrip({required this.selected, required this.onPick});
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final monday = today.subtract(Duration(days: today.weekday - 1));
-    const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 8),
-      child: Row(children: [
-        for (var i = 0; i < 7; i++) Expanded(child: _day(monday.add(Duration(days: i)), names[i], today)),
-      ]),
-    );
-  }
-
-  Widget _day(DateTime d, String name, DateTime today) {
-    final count = store.activeAll.where((f) => DateTime(f.expiry.year, f.expiry.month, f.expiry.day) == d).length;
-    final isToday = d == today;
-    final isSel = selected == d;
-    final past = d.isBefore(today);
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: () => onPick(d),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: isSel ? charcoal : (isToday ? lime : Colors.transparent),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(children: [
-          Text(name, style: body(11, FontWeight.w600, isSel ? Colors.white70 : Colors.black54)),
-          const SizedBox(height: 4),
-          Text('${d.day}', style: body(16, FontWeight.w800, isSel ? Colors.white : charcoal)),
-          const SizedBox(height: 4),
-          SizedBox(
-            height: 12,
-            child: count == 0
-                ? null
-                : (past
-                    ? Icon(Icons.close, size: 12, color: isSel ? Colors.white : redDark)
-                    : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        for (var k = 0; k < count.clamp(1, 3); k++)
-                          Container(
-                            width: 6,
-                            height: 6,
-                            margin: const EdgeInsets.symmetric(horizontal: 1),
-                            decoration: BoxDecoration(
-                                color: isSel ? Colors.white : (d.difference(today).inDays <= 2 ? amber : charcoal),
-                                shape: BoxShape.circle),
-                          ),
-                      ])),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
 class _FoodList extends StatelessWidget {
   final List<FoodItem> items;
   final bool empty;
@@ -199,7 +136,7 @@ class _FoodList extends StatelessWidget {
     if (empty) return const _Empty('Nothing here yet', 'Add your first food. It takes seconds.', Icons.kitchen_outlined);
     if (items.isEmpty) return const _Empty('No match', 'Try a different day or word.', Icons.search_off);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [for (final i in items) FoodCard(item: i)],
     );
   }
@@ -213,7 +150,7 @@ class _ExpiredTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (items.isEmpty) return const _Empty('Nothing expired', 'Foods past their date show here.', Icons.verified_outlined);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       children: [
         Text('Check before toss', style: body(19, FontWeight.w800)),
         const SizedBox(height: 2),
@@ -234,7 +171,7 @@ class _UsedTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (items.isEmpty) return const _Empty('Nothing used yet', 'Food you mark as used shows here.', Icons.check_circle_outline);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       children: [
         Text(billing.isPremium ? 'Your full history' : 'Last 7 days. Premium keeps everything.',
             style: body(13, FontWeight.w400, Colors.black54)),

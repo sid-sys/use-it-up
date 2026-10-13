@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../config.dart';
+import '../main.dart';
 import 'add.dart';
+import 'paywall.dart';
 
 /// The one big primary action. Shown on Home and on Foods.
 class AddFoodButton extends StatelessWidget {
@@ -17,7 +20,15 @@ class AddFoodButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         child: InkWell(
           borderRadius: BorderRadius.circular(22),
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddScreen())),
+          onTap: () {
+            if (store.atItemLimit) {
+              Navigator.of(context).push(MaterialPageRoute(
+                  fullscreenDialog: true,
+                  builder: (_) => PaywallScreen(reason: 'Free plan holds ${AppConfig.freeItemLimit} foods. Upgrade to add more.')));
+            } else {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddScreen()));
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             child: Row(children: [

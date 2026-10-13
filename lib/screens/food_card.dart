@@ -20,6 +20,8 @@ void markUsedWithUndo(BuildContext context, FoodItem item) {
     ));
 }
 
+/// Name on top, then date and tag, then status. Only the tick sits on the right,
+/// so long names such as "Strawberries" are never cut off.
 class FoodCard extends StatelessWidget {
   final FoodItem item;
   const FoodCard({super.key, required this.item});
@@ -43,8 +45,8 @@ class FoodCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => DetailsScreen(item: item))),
           child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(children: [
+            padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Container(
                 width: 52,
                 height: 52,
@@ -56,13 +58,13 @@ class FoodCard extends StatelessWidget {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(item.quantity > 1 ? '${item.name}  ×${item.quantity}' : item.name,
-                      maxLines: 1, overflow: TextOverflow.ellipsis, style: body(17, FontWeight.w700)),
+                      maxLines: 2, overflow: TextOverflow.ellipsis, style: body(17, FontWeight.w700)),
                   const SizedBox(height: 2),
                   Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
                     Text(DateFormat('d MMM yyyy').format(item.expiry),
-                          style: item.isUrgent
-                              ? body(14, FontWeight.w700, redDark)
-                              : body(14, FontWeight.w400, Colors.black54)),
+                        style: item.isUrgent
+                            ? body(14, FontWeight.w700, redDark)
+                            : body(14, FontWeight.w400, Colors.black54)),
                     if (item.storage != null)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -70,28 +72,28 @@ class FoodCard extends StatelessWidget {
                         child: Text(item.storage!, style: body(11, FontWeight.w600)),
                       ),
                   ]),
+                  const SizedBox(height: 6),
+                  if (item.used)
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.check_circle, size: 17),
+                      const SizedBox(width: 4),
+                      Text('Used', style: body(13, FontWeight.w700)),
+                    ])
+                  else if (expired)
+                    const ExpiredStamp()
+                  else
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(icon, size: 17, color: color),
+                      const SizedBox(width: 4),
+                      Text(daysLabel(d), style: body(13, FontWeight.w700, color)),
+                    ]),
                 ]),
               ),
-              const SizedBox(width: 8),
-              if (item.used)
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.check_circle, size: 18),
-                  const SizedBox(width: 4),
-                  Text('Used', style: body(13, FontWeight.w700)),
-                ])
-              else if (expired)
-                const ExpiredStamp()
-              else
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(icon, size: 18, color: color),
-                  const SizedBox(width: 4),
-                  Text(daysLabel(d), style: body(13, FontWeight.w700, color)),
-                ]),
               if (!item.used)
                 IconButton(
                   tooltip: 'Mark as used',
                   visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.check_circle_outline),
+                  icon: const Icon(Icons.check_circle_outline, size: 28),
                   onPressed: () => markUsedWithUndo(context, item),
                 ),
             ]),
@@ -110,7 +112,7 @@ class ExpiredStamp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Transform.rotate(
-      angle: -math.pi / 14,
+      angle: -math.pi / 40,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: size * 0.5, vertical: size * 0.15),
         decoration: BoxDecoration(
