@@ -88,20 +88,20 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   children: [
-                    Text('WASTE LESS.\nSTRESS LESS.', style: display(44)),
-                    const SizedBox(height: 10),
+                    Text('WASTE LESS.\nSTRESS LESS.', style: display(38)),
+                    const SizedBox(height: 6),
                     if (widget.reason != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(widget.reason!, style: body(15, FontWeight.w700)),
                       ),
-                    Text('Let Use It Up do the remembering for you.', style: body(17)),
-                    const SizedBox(height: 20),
-                    const _Feature('AI expiry scanning', 'Add food from a photo.'),
-                    const _Feature('Unlimited food tracking', 'Keep your entire fridge organized.'),
-                    const _Feature('Personalized reminders', 'Know what needs attention.'),
-                    if (canTrial) _Feature('${AppConfig.trialDays}-day free trial', 'Try Premium before you pay.'),
-                    const SizedBox(height: 14),
+                    Text('Let Use It Up do the remembering for you.', style: body(14)),
+                    const SizedBox(height: 10),
+                    const _Feature('AI expiry scanning'),
+                    const _Feature('Unlimited food tracking'),
+                    const _Feature('Personalized reminders'),
+                    if (canTrial) _Feature('${AppConfig.trialDays}-day free trial'),
+                    const SizedBox(height: 8),
                     _Plan(
                       selected: _plan == PlanKind.yearly,
                       title: 'Yearly',
@@ -110,7 +110,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       badge: 'SAVE ${AppConfig.yearlySavingsPct}%',
                       onTap: () => setState(() => _plan = PlanKind.yearly),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     _Plan(
                       selected: _plan == PlanKind.monthly,
                       title: 'Monthly',
@@ -118,12 +118,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       sub: 'Cancel any time',
                       onTap: () => setState(() => _plan = PlanKind.monthly),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     _Plan(
                       selected: lifetime,
                       title: 'Lifetime',
                       price: '${AppConfig.money(AppConfig.lifetimePrice)} once',
-                      sub: 'Pay once. Keep Premium for good.',
+                      sub: 'Pay once. Keep it for good.',
                       onTap: () => setState(() => _plan = PlanKind.lifetime),
                     ),
                     const SizedBox(height: 14),
@@ -152,7 +152,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+                padding: const EdgeInsets.fromLTRB(24, 4, 24, 4),
                 child: Column(children: [
                   FilledButton(
                     style: limeButton(),
@@ -172,11 +172,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                 .showSnackBar(const SnackBar(content: Text('Checked for past purchases.')));
                           }
                         },
+                        style: TextButton.styleFrom(visualDensity: VisualDensity.compact, textStyle: body(13)),
                         child: const Text('Restore purchases')),
                     const Text('·'),
-                    TextButton(onPressed: () => openUrl(context, AppConfig.termsUrl), child: const Text('Terms')),
+                    TextButton(onPressed: () => openUrl(context, AppConfig.termsUrl), style: TextButton.styleFrom(visualDensity: VisualDensity.compact, textStyle: body(13)), child: const Text('Terms')),
                     const Text('·'),
-                    TextButton(onPressed: () => openUrl(context, AppConfig.privacyUrl), child: const Text('Privacy')),
+                    TextButton(onPressed: () => openUrl(context, AppConfig.privacyUrl), style: TextButton.styleFrom(visualDensity: VisualDensity.compact, textStyle: body(13)), child: const Text('Privacy')),
                   ]),
                 ]),
               ),
@@ -190,26 +191,27 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
 class _Feature extends StatelessWidget {
   final String title;
-  final String sub;
-  const _Feature(this.title, this.sub);
+  const _Feature(this.title);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
-          width: 26,
-          height: 26,
+          width: 22,
+          height: 22,
+          margin: const EdgeInsets.only(top: 1),
           decoration: const BoxDecoration(color: lime, shape: BoxShape.circle),
-          child: const Icon(Icons.check, size: 18),
+          child: const Icon(Icons.check, size: 15),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: body(16, FontWeight.w700)),
-            Text(sub, style: body(14, FontWeight.w400, Colors.black54)),
-          ]),
+          child: Text.rich(
+            TextSpan(children: [
+              TextSpan(text: title, style: body(15, FontWeight.w700)),
+            ]),
+          ),
         ),
       ]),
     );
@@ -231,7 +233,7 @@ class _Plan extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
           color: selected ? lime.withValues(alpha: 0.45) : cardWhite,
           borderRadius: BorderRadius.circular(18),
@@ -251,7 +253,7 @@ class _Plan extends StatelessWidget {
                     child: Text(badge!, style: body(10, FontWeight.w700, Colors.white)),
                   ),
               ]),
-              Text(sub, style: body(13)),
+              Text(sub, style: body(12.5)),
             ]),
           ),
           Text(price, style: body(15, FontWeight.w800)),
