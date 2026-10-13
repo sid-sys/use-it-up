@@ -58,21 +58,17 @@ class FoodCard extends StatelessWidget {
                   Text(item.quantity > 1 ? '${item.name}  ×${item.quantity}' : item.name,
                       maxLines: 1, overflow: TextOverflow.ellipsis, style: body(17, FontWeight.w700)),
                   const SizedBox(height: 2),
-                  Row(children: [
-                    Flexible(
-                      child: Text(DateFormat('d MMM yyyy').format(item.expiry),
+                  Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                    Text(DateFormat('d MMM yyyy').format(item.expiry),
                           style: item.isUrgent
                               ? body(14, FontWeight.w700, redDark)
                               : body(14, FontWeight.w400, Colors.black54)),
-                    ),
-                    if (item.storage != null) ...[
-                      const SizedBox(width: 8),
+                    if (item.storage != null)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(color: ivory, borderRadius: BorderRadius.circular(8)),
                         child: Text(item.storage!, style: body(11, FontWeight.w600)),
                       ),
-                    ],
                   ]),
                 ]),
               ),

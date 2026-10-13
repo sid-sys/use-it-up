@@ -74,6 +74,7 @@ String daysLabel(int d) {
 }
 
 const _emoji = {
+  'chickpea': '🫘', 'peanut': '🥜',
   'milk': '🥛', 'yogurt': '🥛', 'yoghurt': '🥛', 'curd': '🥛', 'cheese': '🧀', 'paneer': '🧀',
   'butter': '🧈', 'egg': '🥚', 'bread': '🍞', 'bun': '🍞', 'waffle': '🧇',
   'apple': '🍎', 'banana': '🍌', 'pear': '🍐', 'grape': '🍇', 'orange': '🍊', 'lemon': '🍋',
@@ -85,7 +86,7 @@ const _emoji = {
   'cereal': '🥣', 'biscuit': '🍪', 'cookie': '🍪', 'cake': '🍰', 'chocolate': '🍫', 'ice': '🍨',
   'peas': '🫛', 'zucchini': '🥒', 'celery': '🥬', 'turkey': '🦃', 'meatball': '🍖', 'dumpling': '🥟',
   'falafel': '🧆', 'vinegar': '🍶', 'syrup': '🍯', 'rotini': '🍝', 'sausage': '🌭', 'flat bread': '🫓',
-  'peanut': '🥜', 'chickpea': '🫘', 'blueberr': '🫐', 'bean': '🫘', 'dal': '🫘', 'nut': '🥜', 'oil': '🫒', 'sauce': '🥫', 'can': '🥫',
+  'blueberr': '🫐', 'bean': '🫘', 'dal': '🫘', 'nut': '🥜', 'oil': '🫒', 'sauce': '🥫', 'can': '🥫',
 };
 
 String emojiFor(String name) {
