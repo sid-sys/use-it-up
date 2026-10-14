@@ -16,6 +16,8 @@ void markUsedWithUndo(BuildContext context, FoodItem item) {
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(
       content: Text('${item.name} marked as used'),
+      persist: false, // a snackbar with an action otherwise stays until dismissed
+      duration: const Duration(seconds: 4),
       action: SnackBarAction(label: 'Undo', onPressed: () => store.restoreItem(item)),
     ));
 }

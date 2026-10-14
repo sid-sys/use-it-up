@@ -196,6 +196,11 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Const widget: it must watch billing itself, or the plan stays stale after Cancel.
+    return ListenableBuilder(listenable: billing, builder: (context, _) => _card(context));
+  }
+
+  Widget _card(BuildContext context) {
     final f = DateFormat('d MMM yyyy');
     final plan = billing.plan;
     final String sub;
