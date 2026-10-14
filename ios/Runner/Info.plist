@@ -72,6 +72,17 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>GIDClientID</key>
+		<string>204898958721-atn5pot83tprnhn3vbilj8rhi4k5nlep.apps.googleusercontent.com</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.204898958721-atn5pot83tprnhn3vbilj8rhi4k5nlep</string>
+				</array>
+			</dict>
+		</array>
 		<key>ITSAppUsesNonExemptEncryption</key>
 		<false/>
 	</dict>

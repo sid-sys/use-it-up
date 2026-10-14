@@ -175,12 +175,12 @@ class _SignUpState extends State<_SignUp> {
   String? _error;
   bool _busy = false;
 
-  Future<void> _run(AuthProvider p, {String? email, String? name}) async {
+  Future<void> _run(AuthProvider p, {String? email, String? name, String? password, bool create = true}) async {
     setState(() {
       _busy = true;
       _error = null;
     });
-    final err = await Auth.instance.signIn(p, emailAddress: email, name: name);
+    final err = await Auth.instance.signIn(p, emailAddress: email, name: name, password: password, createAccount: create);
     if (!mounted) return;
     setState(() => _busy = false);
     if (err == null) {
@@ -193,39 +193,87 @@ class _SignUpState extends State<_SignUp> {
   Future<void> _emailSheet() async {
     final nameC = TextEditingController();
     final c = TextEditingController();
-    final result = await showModalBottomSheet<(String, String)>(
+    final passC = TextEditingController();
+    final real = !AppConfig.mock; // a real build also asks for a password
+    var create = true;
+    String? note;
+    final result = await showModalBottomSheet<(String, String, String, bool)>(
       context: context,
       isScrollControlled: true,
       backgroundColor: ivory,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(ctx).viewInsets.bottom),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Your name and email', style: body(20, FontWeight.w800)),
-          const SizedBox(height: 4),
-          Text('We will send a one-time code. No password, no phone number.',
-              style: body(13.5, FontWeight.w400, Colors.black54)),
-          const SizedBox(height: 14),
-          TextField(
-            controller: nameC,
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(hintText: 'Your name'),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: c,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(hintText: 'you@example.com'),
-            onSubmitted: (_) => Navigator.pop(ctx, (nameC.text, c.text)),
-          ),
-          const SizedBox(height: 14),
-          FilledButton(style: limeButton(), onPressed: () => Navigator.pop(ctx, (nameC.text, c.text)), child: const Text('Continue')),
-        ]),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(!real ? 'Your name and email' : (create ? 'Create your account' : 'Welcome back'), style: body(20, FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(!real ? 'Demo build: no password needed.' : 'Use at least 6 characters for your password.',
+                style: body(13.5, FontWeight.w400, Colors.black54)),
+            const SizedBox(height: 14),
+            if (create) ...[
+              TextField(
+                controller: nameC,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(hintText: 'Your name'),
+              ),
+              const SizedBox(height: 10),
+            ],
+            TextField(
+              controller: c,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: real ? TextInputAction.next : TextInputAction.done,
+              decoration: const InputDecoration(hintText: 'you@example.com'),
+              onSubmitted: real ? null : (_) => Navigator.pop(ctx, (nameC.text, c.text, '', true)),
+            ),
+            if (real) ...[
+              const SizedBox(height: 10),
+              TextField(
+                controller: passC,
+                obscureText: true,
+                decoration: const InputDecoration(hintText: 'Password'),
+                onSubmitted: (_) => Navigator.pop(ctx, (nameC.text, c.text, passC.text, create)),
+              ),
+            ],
+            if (note != null) ...[
+              const SizedBox(height: 8),
+              Text(note!, style: body(13, FontWeight.w600)),
+            ],
+            const SizedBox(height: 14),
+            FilledButton(
+              style: limeButton(),
+              onPressed: () => Navigator.pop(ctx, (nameC.text, c.text, passC.text, create)),
+              child: Text(!real ? 'Continue' : (create ? 'Create account' : 'Sign in')),
+            ),
+            if (real) ...[
+              const SizedBox(height: 4),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                TextButton(
+                  onPressed: () => setSheet(() {
+                    create = !create;
+                    note = null;
+                  }),
+                  child: Text(create ? 'I already have an account' : 'Create a new account'),
+                ),
+                if (!create)
+                  TextButton(
+                    onPressed: () async {
+                      final err = await Auth.instance.resetPassword(c.text);
+                      setSheet(() => note = err ?? 'We sent a reset link to ${c.text.trim()}.');
+                    },
+                    child: const Text('Forgot password?'),
+                  ),
+              ]),
+            ],
+          ]),
+        ),
       ),
     );
-    if (result != null && mounted) await _run(AuthProvider.email, name: result.$1, email: result.$2);
+    if (result != null && mounted) {
+      await _run(AuthProvider.email, name: result.$1, email: result.$2, password: result.$3, create: result.$4);
+    }
   }
 
   @override
@@ -240,7 +288,7 @@ class _SignUpState extends State<_SignUp> {
         const SizedBox(height: 14),
         Text('Save your food list and keep your reminders with you.', style: body(17)),
         const SizedBox(height: 28),
-        if (ios) ...[
+        if (ios && AppConfig.mock) ...[
           FilledButton.icon(
             style: darkButton(),
             onPressed: _busy ? null : () => _run(AuthProvider.apple),

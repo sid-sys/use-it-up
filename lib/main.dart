@@ -1,8 +1,11 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'analytics.dart';
 import 'auth.dart';
 import 'billing.dart';
+import 'config.dart';
+import 'firebase_options.dart';
 import 'notification_log.dart';
 import 'notifications.dart';
 import 'screens/foods.dart';
@@ -23,6 +26,7 @@ Future<void> main() async {
   store = Store(billing);
   await billing.load();
   await store.load();
+  if (!AppConfig.mock) await Firebase.initializeApp(options: FirebaseConfig.current);
   await Auth.instance.load();
   await Analytics.instance.load();
   await NotificationLog.instance.load();
