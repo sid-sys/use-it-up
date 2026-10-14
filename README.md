@@ -57,6 +57,23 @@ The `docs/` folder is published at `https://sid-sys.github.io/use-it-up/`:
 - Terms of Use: `/terms.html`
 - Data deletion URL (for Google Play "Data safety"): `/delete-account.html`
 
+## Payments (App Store and Google Play)
+
+Real builds (`--dart-define=MOCK=false`) use the stores directly through `in_app_purchase`. There is no RevenueCat.
+
+Create these three products. The ids must match `AppConfig.product*` in `lib/config.dart`:
+
+| Id | Type | Price (USD) | Free trial |
+|---|---|---|---|
+| `monthly` | Auto-renewing subscription | 6.99 | 7 days |
+| `yearly` | Auto-renewing subscription | 49.99 | 7 days |
+| `lifetime` | Non-consumable (Apple) / One-time product (Google) | 99.00 | none |
+
+- App Store Connect: Monetization > Subscriptions (group `Premium`, add an introductory offer: free, 7 days) and In-App Purchases.
+- Google Play Console: Monetize > Subscriptions (one base plan each, plus an offer with a 7-day free trial) and In-app products.
+
+Limits of this setup: the phone asks the store what it owns at every launch. Nothing is verified on our own server, so a rooted phone could fake Premium, and the Admin panel cannot show real revenue. When that matters, add a Cloud Function that verifies receipts with the Apple and Google server APIs.
+
 ## Still to do before store release
 
 1. RevenueCat + store products (replace `lib/billing.dart` internals).
