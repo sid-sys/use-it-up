@@ -54,11 +54,15 @@ class _PaywallScreenState extends State<PaywallScreen> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Premium is on. Enjoy!')));
       }
       _close();
-    } catch (_) {
+    } on PurchaseCancelled {
+      if (mounted) setState(() => _busy = false); // closed the store sheet: not an error
+    } catch (e) {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = 'The purchase did not go through. You have not been charged. Please try again.';
+          _error = AppConfig.mock
+              ? 'The purchase did not go through. You have not been charged. Please try again.'
+              : 'The purchase did not go through. ${e.toString().replaceFirst('Exception: ', '')}';
         });
       }
     }
@@ -74,11 +78,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
             final canTrial = !billing.trialUsed;
             final lifetime = _plan == PlanKind.lifetime;
             final trialApplies = canTrial && !lifetime;
-            final price = switch (_plan) {
-              PlanKind.monthly => '${AppConfig.money(AppConfig.monthlyPrice)} / month',
-              PlanKind.lifetime => '${AppConfig.money(AppConfig.lifetimePrice)} once',
-              _ => '${AppConfig.money(AppConfig.yearlyPrice)} / year',
-            };
+            final price = billing.priceFor(_plan);
             return Column(children: [
               Align(
                 alignment: Alignment.centerRight,
@@ -105,8 +105,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     _Plan(
                       selected: _plan == PlanKind.yearly,
                       title: 'Yearly',
-                      price: '${AppConfig.money(AppConfig.yearlyPrice)} / year',
-                      sub: 'About ${AppConfig.money(double.parse((AppConfig.yearlyPrice / 12).toStringAsFixed(2)))} a month',
+                      price: billing.priceFor(PlanKind.yearly),
+                      sub: billing.storePricesLoaded
+                          ? 'Billed once a year'
+                          : 'About ${AppConfig.money(double.parse((AppConfig.yearlyPrice / 12).toStringAsFixed(2)))} a month',
                       badge: 'SAVE ${AppConfig.yearlySavingsPct}%',
                       onTap: () => setState(() => _plan = PlanKind.yearly),
                     ),
@@ -114,7 +116,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     _Plan(
                       selected: _plan == PlanKind.monthly,
                       title: 'Monthly',
-                      price: '${AppConfig.money(AppConfig.monthlyPrice)} / month',
+                      price: billing.priceFor(PlanKind.monthly),
                       sub: 'Cancel any time',
                       onTap: () => setState(() => _plan = PlanKind.monthly),
                     ),
@@ -122,7 +124,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     _Plan(
                       selected: lifetime,
                       title: 'Lifetime',
-                      price: '${AppConfig.money(AppConfig.lifetimePrice)} once',
+                      price: billing.priceFor(PlanKind.lifetime),
                       sub: 'Pay once. Keep it for good.',
                       onTap: () => setState(() => _plan = PlanKind.lifetime),
                     ),

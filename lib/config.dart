@@ -28,6 +28,11 @@ class AppConfig {
   static const lifetimePrice = 99.0; // one-time purchase, no trial
   static const trialDays = 7;
 
+  /// Product ids. They must match exactly what is created in App Store Connect and Google Play Console.
+  static const productMonthly = 'monthly';
+  static const productYearly = 'yearly';
+  static const productLifetime = 'lifetime';
+
   /// Share the stores keep. 15% = small business programs. Use 0.30 to be careful.
   static const storeCut = 0.15;
 

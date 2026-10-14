@@ -25,6 +25,7 @@ Future<void> main() async {
   billing = Billing();
   store = Store(billing);
   await billing.load();
+  await billing.initStore(); // real build only: connects to App Store / Google Play
   await store.load();
   if (!AppConfig.mock) await Firebase.initializeApp(options: FirebaseConfig.current);
   await Auth.instance.load();

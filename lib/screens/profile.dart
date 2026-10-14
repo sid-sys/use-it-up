@@ -280,13 +280,15 @@ class _PlanCard extends StatelessWidget {
             },
             child: const Text('Open store page'),
           ),
-          TextButton(
-            onPressed: () async {
-              await billing.cancel();
-              if (c.mounted) Navigator.pop(c);
-            },
-            child: const Text('Cancel now', style: TextStyle(color: redDark)),
-          ),
+          // Only the stores can end a real subscription. This shortcut is for the demo build.
+          if (AppConfig.mock)
+            TextButton(
+              onPressed: () async {
+                await billing.cancel();
+                if (c.mounted) Navigator.pop(c);
+              },
+              child: const Text('Cancel now', style: TextStyle(color: redDark)),
+            ),
         ],
       ),
     );
