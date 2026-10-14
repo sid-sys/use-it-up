@@ -508,7 +508,10 @@ class _NotifySetupState extends State<_NotifySetup> {
 
   Future<void> _ask() async {
     setState(() => _busy = true);
-    final ok = await Notifier.requestPermission();
+    var ok = false;
+    try {
+      ok = await Notifier.requestPermission();
+    } catch (_) {}
     await store.saveOnboarding(notifAsked: true);
     if (!mounted) return;
     setState(() => _busy = false);

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -153,7 +154,14 @@ class Store extends ChangeNotifier {
 
   /// Re-plans the weekly overview and the inactivity nudge. Call when the app opens
   /// and after any change to the food list or reminder settings.
-  Future<void> refreshGeneralReminders() => Notifier.refreshGeneral(activeAll, prefs);
+  /// Never throws: a reminder that cannot be planned must not block the screen that asked.
+  Future<void> refreshGeneralReminders() async {
+    try {
+      await Notifier.refreshGeneral(activeAll, prefs);
+    } catch (e) {
+      debugPrint('Could not plan general reminders: $e');
+    }
+  }
 
   /// Save onboarding progress and answers. Pass only what changed.
   Future<void> saveOnboarding({int? step, String? problem, String? household, String? remindWhen, bool? notifAsked}) async {
@@ -244,7 +252,16 @@ class Store extends ChangeNotifier {
     prefs = p;
     await _save();
     notifyListeners();
-    await Notifier.rescheduleAll(activeAll, prefs);
+    // Planned in the background, so a slow or failing notification service cannot freeze the UI.
+    unawaited(_replan());
+  }
+
+  Future<void> _replan() async {
+    try {
+      await Notifier.rescheduleAll(activeAll, prefs);
+    } catch (e) {
+      debugPrint('Could not plan reminders: $e');
+    }
     await refreshGeneralReminders();
   }
 
