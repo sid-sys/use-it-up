@@ -149,10 +149,11 @@ class ProfileScreen extends StatelessWidget {
                   title: const Text('Sign out'),
                   onTap: () => Auth.instance.signOut(),
                 ),
+              // With an account, deleting means deleting the account too (an App Store rule).
               ListTile(
                 leading: const Icon(Icons.delete_forever_outlined, color: redDark),
-                title: const Text('Delete my data', style: TextStyle(color: redDark)),
-                onTap: () => _confirmDelete(context),
+                title: Text(Auth.signedIn ? 'Delete my account' : 'Delete my data', style: const TextStyle(color: redDark)),
+                onTap: () => Auth.signedIn ? _confirmDeleteAccount(context) : _confirmDelete(context),
               ),
             ]),
             const SizedBox(height: 20),
@@ -161,6 +162,71 @@ class ProfileScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Deletes the cloud account and everything on this phone. Asks the person to confirm
+  /// again, because Firebase only deletes an account after a fresh sign-in.
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final passC = TextEditingController();
+    String? error;
+    var busy = false;
+    final done = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => StatefulBuilder(
+        builder: (c, setD) => AlertDialog(
+          title: const Text('Delete your account?'),
+          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              'This deletes your account (${Auth.email ?? 'your account'}) and erases your food, history and settings from this phone. '
+              'It cannot be undone. It does not cancel a store subscription: do that in your App Store or Google Play settings.',
+            ),
+            if (Auth.usesPassword) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: passC,
+                obscureText: true,
+                decoration: const InputDecoration(hintText: 'Type your password to confirm'),
+              ),
+            ] else if (!AppConfig.mock) ...[
+              const SizedBox(height: 12),
+              const Text('You will be asked to sign in again to confirm it is you.'),
+            ],
+            if (error != null) ...[
+              const SizedBox(height: 10),
+              Text(error!, style: const TextStyle(color: redDark, fontWeight: FontWeight.w600)),
+            ],
+          ]),
+          actions: [
+            TextButton(onPressed: busy ? null : () => Navigator.pop(c, false), child: const Text('Keep')),
+            TextButton(
+              onPressed: busy
+                  ? null
+                  : () async {
+                      setD(() {
+                        busy = true;
+                        error = null;
+                      });
+                      final err = await Auth.instance.deleteAccount(password: passC.text);
+                      if (!c.mounted) return;
+                      if (err == null) {
+                        Navigator.pop(c, true);
+                      } else {
+                        setD(() {
+                          busy = false;
+                          error = err;
+                        });
+                      }
+                    },
+              child: busy
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Delete', style: TextStyle(color: redDark)),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (done == true) await store.deleteAllData();
   }
 
   Future<void> _confirmDelete(BuildContext context) async {

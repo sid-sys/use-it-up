@@ -288,7 +288,7 @@ class _SignUpState extends State<_SignUp> {
         const SizedBox(height: 14),
         Text('Save your food list and keep your reminders with you.', style: body(17)),
         const SizedBox(height: 28),
-        if (ios && AppConfig.mock) ...[
+        if (ios) ...[
           FilledButton.icon(
             style: darkButton(),
             onPressed: _busy ? null : () => _run(AuthProvider.apple),

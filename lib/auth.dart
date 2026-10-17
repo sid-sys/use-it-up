@@ -22,6 +22,7 @@ class Auth extends ChangeNotifier {
 
   /// "john.doe42@gmail.com" becomes "John Doe". Used for Google and Apple sign-in.
   static String nameFromEmail(String email) {
+    if (email.toLowerCase().endsWith('@privaterelay.appleid.com')) return 'Friend'; // hidden Apple address
     final local = email.split('@').first;
     final words = local
         .replaceAll(RegExp(r'[0-9]'), '')
@@ -46,8 +47,8 @@ class Auth extends ChangeNotifier {
     if (!AppConfig.mock) {
       // Firebase remembers a signed-in person between launches.
       final u = fb.FirebaseAuth.instance.currentUser;
-      if (u?.email != null) {
-        _email = u!.email;
+      if (u != null && !u.isAnonymous) {
+        _email = u.email ?? 'Apple account';
         _name = _niceName(u);
       } else if (provider != AuthProvider.guest) {
         _email = null;
@@ -88,32 +89,97 @@ class Auth extends ChangeNotifier {
           return _set(e, c.user == null ? nameFromEmail(e) : _niceName(c.user!), p);
         });
       case AuthProvider.apple:
-        if (!AppConfig.mock) return 'Sign in with Apple is coming soon. Please use Google, email, or continue without an account.';
-        final demo = 'demo.apple@example.com';
-        return _set(demo, nameFromEmail(demo), p);
+        if (AppConfig.mock) {
+          const demo = 'demo.apple@example.com';
+          return _set(demo, nameFromEmail(demo), p);
+        }
+        return _firebase(() async {
+          final c = await fb.FirebaseAuth.instance.signInWithProvider(_appleProvider());
+          final u = c.user;
+          if (u == null) return 'Apple did not complete the sign-in. Please try again.';
+          return _set(u.email ?? 'Apple account', _niceName(u), p);
+        });
       case AuthProvider.google:
         if (AppConfig.mock) {
           final demo = 'demo.google@example.com';
           return _set(demo, nameFromEmail(demo), p);
         }
         return _firebase(() async {
-          final g = GoogleSignIn.instance;
-          if (!_googleReady) {
-            await g.initialize(
-              clientId: defaultTargetPlatform == TargetPlatform.iOS ? FirebaseConfig.iosClientId : null,
-              serverClientId: FirebaseConfig.webClientId,
-            );
-            _googleReady = true;
-          }
-          final account = await g.authenticate();
-          final token = account.authentication.idToken;
-          if (token == null) return 'Google did not return a sign-in token. Please try again.';
-          final c = await fb.FirebaseAuth.instance.signInWithCredential(fb.GoogleAuthProvider.credential(idToken: token));
+          final cred = await _googleCredential();
+          if (cred == null) return 'Google did not return a sign-in token. Please try again.';
+          final c = await fb.FirebaseAuth.instance.signInWithCredential(cred);
           final u = c.user;
           if (u?.email == null) return 'Google did not share an email address.';
           return _set(u!.email, _niceName(u), p);
         });
     }
+  }
+
+  fb.AppleAuthProvider _appleProvider() => fb.AppleAuthProvider()
+    ..addScope('email')
+    ..addScope('name');
+
+  Future<fb.AuthCredential?> _googleCredential() async {
+    final g = GoogleSignIn.instance;
+    if (!_googleReady) {
+      await g.initialize(
+        clientId: defaultTargetPlatform == TargetPlatform.iOS ? FirebaseConfig.iosClientId : null,
+        serverClientId: FirebaseConfig.webClientId,
+      );
+      _googleReady = true;
+    }
+    final account = await g.authenticate();
+    final token = account.authentication.idToken;
+    return token == null ? null : fb.GoogleAuthProvider.credential(idToken: token);
+  }
+
+  /// True when the signed-in account uses an email and password. The delete screen then
+  /// asks for the password again, which is the safe way to confirm.
+  static bool get usesPassword {
+    if (AppConfig.mock) return false;
+    final u = fb.FirebaseAuth.instance.currentUser;
+    return u != null && u.providerData.any((p) => p.providerId == 'password');
+  }
+
+  /// Deletes the account from Firebase, then signs out on this phone.
+  /// The person is asked to confirm again (password, Google or Apple) because Firebase
+  /// only deletes an account after a fresh sign-in. Returns null on success, or a message.
+  /// Guests and demo builds have no cloud account, so this just signs out.
+  Future<String?> deleteAccount({String? password}) async {
+    if (AppConfig.mock) {
+      await signOut();
+      return null;
+    }
+    final user = fb.FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      await signOut();
+      return null;
+    }
+    final result = await _firebase(() async {
+      final ids = user.providerData.map((p) => p.providerId).toSet();
+      String? appleCode;
+      if (ids.contains('password')) {
+        if ((password ?? '').isEmpty) return 'Please enter your password to confirm.';
+        await user.reauthenticateWithCredential(fb.EmailAuthProvider.credential(email: user.email!, password: password!));
+      } else if (ids.contains('google.com')) {
+        final cred = await _googleCredential();
+        if (cred == null) return 'Google did not confirm it is you. Please try again.';
+        await user.reauthenticateWithCredential(cred);
+      } else if (ids.contains('apple.com')) {
+        final r = await user.reauthenticateWithProvider(_appleProvider());
+        appleCode = r.additionalUserInfo?.authorizationCode;
+      }
+      if (appleCode != null) {
+        // Apple asks apps to cancel the Apple sign-in link when the account is deleted.
+        try {
+          await fb.FirebaseAuth.instance.revokeTokenWithAuthorizationCode(appleCode);
+        } catch (_) {}
+      }
+      await user.delete();
+      return null;
+    });
+    if (result == null) await signOut();
+    return result;
   }
 
   /// Sends a password reset email. Returns null on success, or a message.
@@ -139,6 +205,7 @@ class Auth extends ChangeNotifier {
         'invalid-email' => 'Please enter a valid email address.',
         'weak-password' => 'Password needs at least 6 characters.',
         'wrong-password' || 'invalid-credential' || 'user-not-found' => 'Wrong email or password.',
+        'canceled' || 'web-context-canceled' => 'Sign-in was cancelled.',
         'user-disabled' => 'This account has been turned off.',
         'too-many-requests' => 'Too many tries. Please wait a few minutes.',
         'network-request-failed' => 'No internet connection.',

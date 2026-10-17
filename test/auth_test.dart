@@ -9,6 +9,17 @@ void main() {
     expect(Auth.nameFromEmail('a_b-c@x.com'), 'A B C');
     expect(Auth.nameFromEmail('MARY.JANE@x.com'), 'Mary Jane');
     expect(Auth.nameFromEmail('123@x.com'), 'Friend');
+    expect(Auth.nameFromEmail('x7a8b9c@privaterelay.appleid.com'), 'Friend'); // hidden Apple address
+  });
+
+  test('deleting the account signs out (demo build)', () async {
+    SharedPreferences.setMockInitialValues({});
+    final a = Auth.instance;
+    await a.signIn(AuthProvider.apple);
+    expect(Auth.signedIn, isTrue);
+    expect(Auth.usesPassword, isFalse);
+    expect(await a.deleteAccount(), isNull);
+    expect(Auth.signedIn, isFalse);
   });
 
   test('Google sign-in takes the name from the email. Email sign-up needs a name', () async {
