@@ -125,7 +125,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       selected: lifetime,
                       title: 'Lifetime',
                       price: billing.priceFor(PlanKind.lifetime),
-                      sub: 'Pay once. Keep it for good.',
+                      sub: 'Pay once. Keep it.',
                       onTap: () => setState(() => _plan = PlanKind.lifetime),
                     ),
                     const SizedBox(height: 14),

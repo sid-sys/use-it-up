@@ -56,3 +56,5 @@ google-services.json
 GoogleService-Info.plist
 android/local.properties
 *.p8
+store_screenshots/
+tool/store_shots/raw/
