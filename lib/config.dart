@@ -19,13 +19,13 @@ class AppConfig {
 
   // Store prices in US dollars. Apple and Google convert them to local currency (for
   // example INR) when you set up the products, so the app only needs the dollar prices.
-  // Monthly $6.99, yearly $49.99 (about 40% less than twelve months), lifetime $99 once.
+  // Monthly $4.99, yearly $39.99 (about 33% less than twelve months), lifetime $69.99 once.
   // Market check from store listings (may have changed): NoWaste Pro $6.99/yr, FreshKeeper
   // $8.99/mo and $19.99/yr, Cooklist $49.99-59.99/yr, Pantry Pal $59.99/yr.
   static const currency = '\$';
-  static const monthlyPrice = 6.99;
-  static const yearlyPrice = 49.99;
-  static const lifetimePrice = 99.0; // one-time purchase, no trial
+  static const monthlyPrice = 4.99;
+  static const yearlyPrice = 39.99;
+  static const lifetimePrice = 69.99; // one-time purchase, no trial
   static const trialDays = 7;
 
   /// Product ids. They must match exactly what is created in App Store Connect and Google Play Console.
@@ -48,7 +48,7 @@ class AppConfig {
   static const freeScans = 3;
   static const premiumScansPerMonth = 100;
 
-  /// Whole dollars show as $7, others as $6.99.
+  /// Whole dollars show as $7, others as $4.99.
   static String money(num v) => v == v.roundToDouble() ? '$currency${v.round()}' : '$currency${v.toStringAsFixed(2)}';
 
   /// Whole dollars only. For totals on the admin dashboard.

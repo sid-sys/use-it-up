@@ -65,9 +65,9 @@ Create these three products. The ids must match `AppConfig.product*` in `lib/con
 
 | Id | Type | Price (USD) | Free trial |
 |---|---|---|---|
-| `monthly` | Auto-renewing subscription | 6.99 | 7 days |
-| `yearly` | Auto-renewing subscription | 49.99 | 7 days |
-| `lifetime` | Non-consumable (Apple) / One-time product (Google) | 99.00 | none |
+| `monthly` | Auto-renewing subscription | 4.99 | 7 days |
+| `yearly` | Auto-renewing subscription | 39.99 | 7 days |
+| `lifetime` | Non-consumable (Apple) / One-time product (Google) | 69.99 | none |
 
 - App Store Connect: Monetization > Subscriptions (group `Premium`, add an introductory offer: free, 7 days) and In-App Purchases.
 - Google Play Console: Monetize > Subscriptions (one base plan each, plus an offer with a 7-day free trial) and In-app products.

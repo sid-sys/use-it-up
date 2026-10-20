@@ -5,11 +5,11 @@ import 'package:use_it_up/config.dart';
 
 void main() {
   test('prices are in USD', () {
-    expect(AppConfig.money(AppConfig.monthlyPrice), r'$6.99');
-    expect(AppConfig.money(AppConfig.yearlyPrice), r'$49.99');
-    expect(AppConfig.money(AppConfig.lifetimePrice), r'$99');
+    expect(AppConfig.money(AppConfig.monthlyPrice), r'$4.99');
+    expect(AppConfig.money(AppConfig.yearlyPrice), r'$39.99');
+    expect(AppConfig.money(AppConfig.lifetimePrice), r'$69.99');
     expect(AppConfig.money(0), r'$0');
-    expect(AppConfig.yearlySavingsPct, 40);
+    expect(AppConfig.yearlySavingsPct, 33);
     expect(AppConfig.moneyShort(2893.4), r'$2893');
   });
 
