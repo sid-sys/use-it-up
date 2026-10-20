@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../auth.dart';
 import '../config.dart';
@@ -278,7 +277,6 @@ class _SignUpState extends State<_SignUp> {
 
   @override
   Widget build(BuildContext context) {
-    final ios = defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS;
     return _ScrollFill(child: Padding(
       padding: const EdgeInsets.all(24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -288,15 +286,13 @@ class _SignUpState extends State<_SignUp> {
         const SizedBox(height: 14),
         Text('Save your food list and keep your reminders with you.', style: body(17)),
         const SizedBox(height: 28),
-        if (ios) ...[
-          FilledButton.icon(
-            style: darkButton(),
-            onPressed: _busy ? null : () => _run(AuthProvider.apple),
-            icon: const Icon(Icons.apple),
-            label: const Text('Continue with Apple'),
-          ),
-          const SizedBox(height: 12),
-        ],
+        FilledButton.icon(
+          style: darkButton(),
+          onPressed: _busy ? null : () => _run(AuthProvider.apple),
+          icon: const Icon(Icons.apple),
+          label: const Text('Continue with Apple'),
+        ),
+        const SizedBox(height: 12),
         _outlined(Icons.g_mobiledata, 'Continue with Google', _busy ? null : () => _run(AuthProvider.google)),
         const SizedBox(height: 12),
         _outlined(Icons.mail_outline, 'Continue with email', _busy ? null : _emailSheet),
