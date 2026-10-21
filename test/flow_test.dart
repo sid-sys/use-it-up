@@ -31,7 +31,9 @@ void main() {
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
     await tester.runAsync(loadFonts);
+    Auth.demoSignIn = true; // tests cannot reach Firebase
     SharedPreferences.setMockInitialValues({});
+    await Auth.instance.signOut();
 
     await tester.runAsync(() => app.main());
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 1800))); // splash timer
@@ -82,7 +84,7 @@ void main() {
     // Sign up comes after the questions (mock build: Google makes a demo account)
     expect(find.text('Continue with Google'), findsOneWidget);
     expect(find.text('Continue with email'), findsOneWidget);
-    expect(find.text('Continue without an account'), findsOneWidget);
+    expect(find.text('Continue without an account'), findsNothing, reason: 'no guest accounts');
     await tapText(tester, 'Continue with Google');
     expect(Auth.signedIn, isTrue);
     expect(Auth.displayName, 'Demo Google'); // name comes from the email

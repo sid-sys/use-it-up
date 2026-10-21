@@ -205,20 +205,17 @@ class _Welcome extends StatelessWidget {
 
 // ---------------------------------------------------------------- 2. Sign up
 
-/// The sign-up screen as a normal page. Used from Profile, for someone who started as a guest.
-class SignInScreen extends StatelessWidget {
-  const SignInScreen({super.key});
+/// Shown when someone is not signed in (after Sign out, for example). There is no way around it.
+class SignInRequired extends StatelessWidget {
+  const SignInRequired({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: _SignUp(
-          onBack: () => Navigator.of(context).pop(),
-          onDone: () {
-            Navigator.of(context).pop();
-            toast(Auth.signedIn ? 'Signed in as ${Auth.displayName}' : 'Continuing as a guest');
-          },
+          onBack: null,
+          onDone: () => toast('Signed in as ${Auth.displayName}'),
         ),
       ),
     );
@@ -226,7 +223,7 @@ class SignInScreen extends StatelessWidget {
 }
 
 class _SignUp extends StatefulWidget {
-  final VoidCallback onBack;
+  final VoidCallback? onBack;
   final VoidCallback onDone;
   const _SignUp({required this.onBack, required this.onDone});
 
@@ -258,7 +255,7 @@ class _SignUpState extends State<_SignUp> {
     final nameC = TextEditingController();
     final c = TextEditingController();
     final passC = TextEditingController();
-    final real = !AppConfig.mock; // a real build also asks for a password
+    final real = !Auth.demoSignIn; // real sign-in also asks for a password
     var create = true;
     String? note;
     final result = await showModalBottomSheet<(String, String, String, bool)>(
@@ -345,7 +342,10 @@ class _SignUpState extends State<_SignUp> {
     return _ScrollFill(child: Padding(
       padding: const EdgeInsets.all(24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        IconButton(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back), padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
+        if (widget.onBack != null)
+          IconButton(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back), padding: EdgeInsets.zero, alignment: Alignment.centerLeft)
+        else
+          const SizedBox(height: 48),
         const Spacer(),
         Text("LET'S GET YOU\nSTARTED.", style: display(46)),
         const SizedBox(height: 14),
@@ -373,15 +373,7 @@ class _SignUpState extends State<_SignUp> {
             ]),
           ),
         ],
-        const SizedBox(height: 6),
-        Center(
-          child: TextButton(
-            onPressed: _busy ? null : () => _run(AuthProvider.guest),
-            child: Text('Continue without an account', style: body(14.5, FontWeight.w700)),
-          ),
-        ),
-        if (AppConfig.mock)
-          Center(child: Text('Demo build: sign-in is simulated.', style: body(12, FontWeight.w500, Colors.black45))),
+
         const Spacer(flex: 2),
         Center(
           child: Wrap(alignment: WrapAlignment.center, crossAxisAlignment: WrapCrossAlignment.center, children: [

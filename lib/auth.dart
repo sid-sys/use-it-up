@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'config.dart';
 import 'firebase_options.dart';
 
 enum AuthProvider { apple, google, email, guest }
@@ -15,6 +14,10 @@ enum AuthProvider { apple, google, email, guest }
 class Auth extends ChangeNotifier {
   static final Auth instance = Auth._();
   Auth._();
+
+  /// Only the automatic tests turn this on: they cannot reach Firebase, so they get a pretend account.
+  /// A demo build on a phone does NOT use it. Sign-in is always real.
+  static bool demoSignIn = false;
 
   static String? get email => instance._email;
   static String get displayName => instance._name ?? (instance._email == null ? 'Guest' : instance._email!.split('@').first);
@@ -44,15 +47,17 @@ class Auth extends ChangeNotifier {
     _name = p.getString('auth_name');
     final pv = p.getString('auth_provider');
     provider = AuthProvider.values.where((e) => e.name == pv).firstOrNull;
-    if (!AppConfig.mock) {
-      // Firebase remembers a signed-in person between launches.
+    if (!demoSignIn) {
+      // Firebase remembers a signed-in person between launches. No account means signed out:
+      // there are no guest accounts any more.
       final u = fb.FirebaseAuth.instance.currentUser;
       if (u != null && !u.isAnonymous) {
         _email = u.email ?? 'Apple account';
         _name = _niceName(u);
-      } else if (provider != AuthProvider.guest) {
+      } else {
         _email = null;
         _name = null;
+        provider = null;
       }
     }
     notifyListeners();
@@ -72,7 +77,7 @@ class Auth extends ChangeNotifier {
       case AuthProvider.email:
         final e = (emailAddress ?? '').trim();
         if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(e)) return 'Please enter a valid email address.';
-        if (AppConfig.mock) {
+        if (demoSignIn) {
           if ((name ?? '').trim().isEmpty) return 'Please enter your name.';
           return _set(e, name!.trim(), p);
         }
@@ -89,7 +94,7 @@ class Auth extends ChangeNotifier {
           return _set(e, c.user == null ? nameFromEmail(e) : _niceName(c.user!), p);
         });
       case AuthProvider.apple:
-        if (AppConfig.mock) {
+        if (demoSignIn) {
           const demo = 'demo.apple@example.com';
           return _set(demo, nameFromEmail(demo), p);
         }
@@ -100,7 +105,7 @@ class Auth extends ChangeNotifier {
           return _set(u.email ?? 'Apple account', _niceName(u), p);
         });
       case AuthProvider.google:
-        if (AppConfig.mock) {
+        if (demoSignIn) {
           final demo = 'demo.google@example.com';
           return _set(demo, nameFromEmail(demo), p);
         }
@@ -136,7 +141,7 @@ class Auth extends ChangeNotifier {
   /// True when the signed-in account uses an email and password. The delete screen then
   /// asks for the password again, which is the safe way to confirm.
   static bool get usesPassword {
-    if (AppConfig.mock) return false;
+    if (demoSignIn) return false;
     final u = fb.FirebaseAuth.instance.currentUser;
     return u != null && u.providerData.any((p) => p.providerId == 'password');
   }
@@ -146,7 +151,7 @@ class Auth extends ChangeNotifier {
   /// only deletes an account after a fresh sign-in. Returns null on success, or a message.
   /// Guests and demo builds have no cloud account, so this just signs out.
   Future<String?> deleteAccount({String? password}) async {
-    if (AppConfig.mock) {
+    if (demoSignIn) {
       await signOut();
       return null;
     }
@@ -186,7 +191,7 @@ class Auth extends ChangeNotifier {
   Future<String?> resetPassword(String emailAddress) async {
     final e = emailAddress.trim();
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(e)) return 'Please enter a valid email address.';
-    if (AppConfig.mock) return null;
+    if (demoSignIn) return null;
     return _firebase(() async {
       await fb.FirebaseAuth.instance.sendPasswordResetEmail(email: e);
       return null;
@@ -237,7 +242,7 @@ class Auth extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    if (!AppConfig.mock) {
+    if (!demoSignIn) {
       try {
         await fb.FirebaseAuth.instance.signOut();
         if (_googleReady) await GoogleSignIn.instance.signOut();

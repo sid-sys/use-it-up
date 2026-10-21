@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:use_it_up/billing.dart';
+import 'package:use_it_up/auth.dart';
 import 'package:use_it_up/main.dart' as app;
 import 'package:use_it_up/models.dart';
 import 'package:use_it_up/sample_data.dart';
@@ -33,7 +34,8 @@ void main() {
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
     await tester.runAsync(loadFonts);
-    SharedPreferences.setMockInitialValues({'onboarded': true});
+    Auth.demoSignIn = true;
+    SharedPreferences.setMockInitialValues({'onboarded': true, 'auth_email': 'tester@example.com', 'auth_name': 'Tester', 'auth_provider': 'google'});
 
     await tester.runAsync(() => app.main());
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 1800)));
@@ -57,6 +59,8 @@ void main() {
     expect(find.text('Start 7-day free trial'), findsOneWidget);
 
     // Start 7-day free trial first shows "we will remind you before the trial ends". Back buys nothing.
+    rootMessenger.currentState?.clearSnackBars(); // a message at the bottom would cover the button
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Start 7-day free trial'));
     await tester.pumpAndSettle();
     expect(find.textContaining('REMINDER BEFORE'), findsOneWidget);

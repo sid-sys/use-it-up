@@ -60,7 +60,8 @@ class TrialReminderScreen extends StatelessWidget {
   }
 }
 
-/// A friendly bell, drawn in the app's colours.
+/// A friendly bell with a face, drawn in the app's colours: a round dome that flares out at the
+/// bottom, a rim, a little knob on top and a clapper underneath.
 class _BellPainter extends CustomPainter {
   const _BellPainter();
 
@@ -71,46 +72,71 @@ class _BellPainter extends CustomPainter {
     final light = Paint()..color = lime;
     final dark = Paint()..color = const Color(0xFFB7DD2E);
 
-    // Top knob
-    canvas.drawCircle(Offset(w * .5, h * .185), w * .06, dark);
-    // Dome
-    final dome = Path()
-      ..moveTo(w * .22, h * .72)
-      ..cubicTo(w * .24, h * .50, w * .28, h * .22, w * .5, h * .2)
-      ..cubicTo(w * .72, h * .22, w * .76, h * .50, w * .78, h * .72)
+    // Knob on top, joined to the dome
+    canvas.drawCircle(Offset(w * .5, h * .12), w * .05, dark);
+    canvas.drawRect(Rect.fromLTWH(w * .47, h * .12, w * .06, h * .08), dark);
+
+    // Body: a round dome, then the sides flare outwards at the bottom
+    final body = Path()
+      ..moveTo(w * .5, h * .17)
+      ..cubicTo(w * .78, h * .17, w * .79, h * .50, w * .79, h * .62)
+      ..cubicTo(w * .79, h * .70, w * .86, h * .72, w * .90, h * .78)
+      ..lineTo(w * .10, h * .78)
+      ..cubicTo(w * .14, h * .72, w * .21, h * .70, w * .21, h * .62)
+      ..cubicTo(w * .21, h * .50, w * .22, h * .17, w * .5, h * .17)
       ..close();
-    canvas.drawPath(dome, light);
-    // Shade on the right side
+    canvas.drawPath(body, light);
+
+    // Shade on the right side of the body
+    canvas.save();
+    canvas.clipPath(body);
     final shade = Path()
-      ..moveTo(w * .62, h * .24)
-      ..cubicTo(w * .74, h * .32, w * .76, h * .52, w * .78, h * .72)
-      ..lineTo(w * .64, h * .72)
-      ..cubicTo(w * .64, h * .52, w * .64, h * .36, w * .62, h * .24)
+      ..moveTo(w * .62, h * .17)
+      ..cubicTo(w * .74, h * .22, w * .76, h * .50, w * .74, h * .78)
+      ..lineTo(w * .95, h * .78)
+      ..lineTo(w * .95, h * .1)
       ..close();
     canvas.drawPath(shade, dark);
-    // Rim
-    final rim = RRect.fromRectAndRadius(Rect.fromLTWH(w * .12, h * .70, w * .76, h * .1), Radius.circular(h * .05));
+    canvas.restore();
+
+    // Rim (a rounded bar along the bottom edge)
+    final rim = RRect.fromRectAndRadius(Rect.fromLTWH(w * .08, h * .76, w * .84, h * .075), Radius.circular(h * .04));
     canvas.drawRRect(rim, light);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(w * .62, h * .70, w * .26, h * .1), Radius.circular(h * .05)), dark);
-    // Clapper
-    canvas.drawCircle(Offset(w * .5, h * .86), w * .07, dark);
-    // Shine
-    canvas.drawArc(Rect.fromLTWH(w * .3, h * .3, w * .12, h * .2), math.pi * .9, math.pi * .6, false,
-        Paint()
-          ..color = Colors.white.withValues(alpha: .7)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = w * .022
-          ..strokeCap = StrokeCap.round);
-    // Face
+    canvas.save();
+    canvas.clipRRect(rim);
+    canvas.drawRect(Rect.fromLTWH(w * .66, h * .76, w * .30, h * .08), dark);
+    canvas.restore();
+
+    // Clapper under the rim
+    final clapper = Path()
+      ..addArc(Rect.fromCenter(center: Offset(w * .5, h * .835), width: w * .2, height: h * .17), 0, math.pi);
+    canvas.drawPath(clapper, dark);
+
+    // Shine: two soft marks on the left of the dome
+    final shine = Paint()
+      ..color = Colors.white.withValues(alpha: .75)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * .022
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(Rect.fromLTWH(w * .27, h * .26, w * .14, h * .24), math.pi * .95, math.pi * .55, false, shine);
+    canvas.drawCircle(Offset(w * .26, h * .54), w * .01, Paint()..color = Colors.white.withValues(alpha: .75));
+
+    // Face: two eyes with a small shine, a smile, soft cheeks
     final ink = Paint()..color = charcoal;
-    canvas.drawCircle(Offset(w * .42, h * .52), w * .025, ink);
-    canvas.drawCircle(Offset(w * .58, h * .52), w * .025, ink);
-    canvas.drawArc(Rect.fromLTWH(w * .45, h * .53, w * .1, h * .07), 0.2, math.pi - 0.4, false,
+    canvas.drawCircle(Offset(w * .40, h * .52), w * .026, ink);
+    canvas.drawCircle(Offset(w * .60, h * .52), w * .026, ink);
+    final white = Paint()..color = Colors.white;
+    canvas.drawCircle(Offset(w * .405, h * .512), w * .008, white);
+    canvas.drawCircle(Offset(w * .605, h * .512), w * .008, white);
+    canvas.drawArc(Rect.fromLTWH(w * .455, h * .535, w * .09, h * .06), 0.15, math.pi - 0.3, false,
         Paint()
           ..color = charcoal
           ..style = PaintingStyle.stroke
-          ..strokeWidth = w * .016
+          ..strokeWidth = w * .014
           ..strokeCap = StrokeCap.round);
+    final cheek = Paint()..color = const Color(0xFFFF9E80).withValues(alpha: .55);
+    canvas.drawOval(Rect.fromCenter(center: Offset(w * .33, h * .565), width: w * .06, height: h * .035), cheek);
+    canvas.drawOval(Rect.fromCenter(center: Offset(w * .67, h * .565), width: w * .06, height: h * .035), cheek);
   }
 
   @override

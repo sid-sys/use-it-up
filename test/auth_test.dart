@@ -3,6 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:use_it_up/auth.dart';
 
 void main() {
+  // The tests cannot reach Firebase, so they get a pretend account.
+  setUpAll(() => Auth.demoSignIn = true);
+
   test('name from email: used for Google and Apple sign-in', () {
     expect(Auth.nameFromEmail('john.doe42@gmail.com'), 'John Doe');
     expect(Auth.nameFromEmail('sidharthbabu9@gmail.com'), 'Sidharthbabu');

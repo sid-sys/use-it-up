@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:use_it_up/auth.dart';
 import 'package:use_it_up/main.dart' as app;
 import 'package:use_it_up/models.dart';
 import 'package:use_it_up/theme.dart';
@@ -66,8 +67,10 @@ void main() {
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
     await tester.runAsync(loadFonts);
+    Auth.demoSignIn = true;
     SharedPreferences.setMockInitialValues({
       'onboarded': true,
+      'auth_email': 'tester@example.com', 'auth_name': 'Tester', 'auth_provider': 'google',
       'items': jsonEncode([
         item('0', 'Cucumber', -2, storage: 'Cut'),
         item('1', 'Spinach', 0),

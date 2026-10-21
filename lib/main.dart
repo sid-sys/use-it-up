@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'analytics.dart';
 import 'auth.dart';
 import 'billing.dart';
-import 'config.dart';
 import 'feedback_log.dart';
 import 'firebase_options.dart';
 import 'notification_log.dart';
@@ -30,7 +29,7 @@ Future<void> main() async {
   await billing.load();
   await billing.initStore(); // real build only: connects to App Store / Google Play
   await store.load();
-  if (!AppConfig.mock) await Firebase.initializeApp(options: FirebaseConfig.current);
+  if (!Auth.demoSignIn) await Firebase.initializeApp(options: FirebaseConfig.current);
   await Auth.instance.load();
   await Analytics.instance.load();
   await NotificationLog.instance.load();
@@ -109,8 +108,9 @@ class _GateState extends State<_Gate> {
           ? const SplashScreen(key: ValueKey('splash'))
           : ListenableBuilder(
               key: const ValueKey('app'),
-              listenable: store,
-              builder: (_, _) => store.onboarded ? const Shell() : const OnboardingFlow(),
+              listenable: Listenable.merge([store, Auth.instance]),
+              // No guest accounts: after onboarding, nobody gets in without signing in.
+              builder: (_, _) => !store.onboarded ? const OnboardingFlow() : (Auth.signedIn ? const Shell() : const SignInRequired()),
             ),
     );
   }

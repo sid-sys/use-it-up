@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:use_it_up/auth.dart';
 import 'package:use_it_up/main.dart' as app;
 
 /// Load the real brand fonts so layout in the test matches the phone.
@@ -19,6 +20,7 @@ void main() {
     addTearDown(tester.view.reset);
     // Saved state: the user was on question 2.
     await tester.runAsync(loadFonts);
+    Auth.demoSignIn = true;
     SharedPreferences.setMockInitialValues({'onb_step': 2, 'onb_problem': 'buy_more'});
 
     await tester.runAsync(() => app.main());

@@ -12,7 +12,6 @@ import '../review.dart';
 import '../theme.dart';
 import '../toast.dart';
 import 'feedback_sheet.dart';
-import 'onboarding.dart' show SignInScreen;
 import 'paywall.dart';
 
 Future<void> openUrl(BuildContext context, String url) async {
@@ -160,16 +159,8 @@ class ProfileScreen extends StatelessWidget {
                   title: const Text('Sign out'),
                   onTap: () async {
                     await Auth.instance.signOut();
-                    toast('Signed out. Your food stays on this phone.');
+                    toast('Signed out');
                   },
-                )
-              else
-                ListTile(
-                  leading: const Icon(Icons.login),
-                  title: const Text('Sign in or create account'),
-                  subtitle: const Text('Keep your account with Apple, Google or email'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignInScreen())),
                 ),
               if (AppConfig.showTestTools)
                 ListTile(
@@ -220,7 +211,7 @@ class ProfileScreen extends StatelessWidget {
                 obscureText: true,
                 decoration: const InputDecoration(hintText: 'Type your password to confirm'),
               ),
-            ] else if (!AppConfig.mock) ...[
+            ] else if (!Auth.demoSignIn) ...[
               const SizedBox(height: 12),
               const Text('You will be asked to sign in again to confirm it is you.'),
             ],
@@ -289,8 +280,10 @@ class _Box extends StatelessWidget {
   const _Box({required this.children});
 
   @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(20)),
+  // A Material, so the ripple of the rows inside shows.
+  Widget build(BuildContext context) => Material(
+        color: cardWhite,
+        borderRadius: BorderRadius.circular(20),
         child: Column(children: children),
       );
 }
