@@ -35,17 +35,17 @@ const _ivoryScreen = Color(0xFFF4F3E9);
 
 const _shots = <_Shot>[
   _Shot('home', '1_home', 'NEVER WASTE\nFOOD AGAIN', 'See what to eat first, at a glance', _ivoryScreen,
-      _Callout(Icons.eco_rounded, '15 foods', 'all in one place', right: 36, top: 840)),
+      _Callout(Icons.eco_rounded, '15 foods', 'all in one place', right: 36, top: 800)),
   _Shot('add', '2_add', 'ADD FOOD\nIN SECONDS', 'Pick a date with one tap', _ivoryScreen,
-      _Callout(Icons.bolt_rounded, 'One tap', 'quick date buttons', left: 36, top: 555)),
+      _Callout(Icons.bolt_rounded, 'One tap', 'quick date buttons', left: 36, top: 508)),
   _Shot('foods', '3_foods', 'ALL YOUR FOOD,\nONE LIST', 'Search, sort and tick off what you use', _ivoryScreen,
-      _Callout(Icons.search_rounded, 'Search', 'find any food fast', right: 36, top: 555)),
+      _Callout(Icons.search_rounded, 'Search', 'find any food fast', right: 36, top: 508)),
   _Shot('groups', '4_groups', 'KNOW WHAT TO\nEAT FIRST', 'Red dates show what needs you now', _ivoryScreen,
-      _Callout(Icons.warning_amber_rounded, 'Check today', 'spinach is due', left: 36, top: 555, iconBg: Color(0xFFFFD9D2))),
+      _Callout(Icons.warning_amber_rounded, 'Check today', 'spinach is due', left: 36, top: 508, iconBg: Color(0xFFFFD9D2))),
   _Shot('reminders', '5_reminders', 'REMINDERS THAT\nHELP', '3 days before, 1 day before, on the day', _ivoryScreen,
-      _Callout(Icons.notifications_active_rounded, 'On the day', 'never miss a date', right: 36, top: 555)),
+      _Callout(Icons.notifications_active_rounded, 'On the day', 'never miss a date', right: 36, top: 508)),
   _Shot('paywall', '6_premium', 'GO PREMIUM,\nFREE FOR 7 DAYS', 'Unlimited foods and more scans', _ivoryScreen,
-      _Callout(Icons.workspace_premium_rounded, '7-day trial', 'cancel any time', left: 36, top: 555)),
+      _Callout(Icons.workspace_premium_rounded, '7-day trial', 'cancel any time', left: 36, top: 508)),
 ];
 
 Future<void> _loadFonts() async {
@@ -109,11 +109,14 @@ class _Poster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const bezel = 20.0;
-    const phoneW = 1010.0;
+    // The whole phone is shown, with rounded corners at the bottom too.
+    const bezel = 18.0;
+    const phoneW = 880.0;
     const screenW = phoneW - bezel * 2;
-    const screenH = screenW * 1532 / 720; // the Android bar at the bottom is cut off
-    const phoneTop = 700.0;
+    const screenH = screenW * 1532 / 720; // the Android bar at the bottom is cropped off
+    const phoneH = screenH + bezel * 2;
+    const phoneTop = 650.0;
+    const k = screenW / 974; // everything inside the screen is drawn at this scale
     return Container(
       width: _w,
       height: _h,
@@ -123,7 +126,7 @@ class _Poster extends StatelessWidget {
           // soft brand colour behind the phone
           Positioned(
             left: -240,
-            top: 1150,
+            top: 1250,
             child: Container(width: 900, height: 900, decoration: BoxDecoration(color: _lime.withValues(alpha: .55), shape: BoxShape.circle)),
           ),
           Positioned(
@@ -133,35 +136,35 @@ class _Poster extends StatelessWidget {
           ),
           // headline
           Positioned(
-            top: 150,
+            top: 110,
             left: 60,
             right: 60,
             child: Column(children: [
               Text(shot.title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontFamily: 'Anton', fontSize: 150, height: 1.02, color: _charcoal)),
-              const SizedBox(height: 26),
+              const SizedBox(height: 22),
               Text(shot.sub,
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontFamily: 'Inter', fontSize: 50, fontWeight: FontWeight.w500, color: Color(0xFF55574F))),
             ]),
           ),
-          // phone, cut off at the bottom
+          // the phone
           Positioned(
             top: phoneTop,
             left: (_w - phoneW) / 2,
             child: Container(
               width: phoneW,
-              height: screenH + bezel * 2 + 40,
+              height: phoneH,
               padding: const EdgeInsets.all(bezel),
               decoration: BoxDecoration(
                 color: const Color(0xFF111210),
-                borderRadius: BorderRadius.circular(150),
+                borderRadius: BorderRadius.circular(135),
                 border: Border.all(color: const Color(0xFF3A3C36), width: 4),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .28), blurRadius: 90, offset: const Offset(0, 40))],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .28), blurRadius: 80, offset: const Offset(0, 36))],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(130),
+                borderRadius: BorderRadius.circular(117),
                 child: SizedBox(
                   width: screenW,
                   height: screenH,
@@ -172,26 +175,29 @@ class _Poster extends StatelessWidget {
                       top: 0,
                       left: 0,
                       right: 0,
-                      height: 118,
+                      height: 118 * k,
                       child: Container(
                         color: shot.statusColor,
-                        padding: const EdgeInsets.only(left: 96, right: 84, top: 18),
-                        child: const Row(children: [
-                          Text('9:41', style: TextStyle(fontFamily: 'Inter', fontSize: 44, fontWeight: FontWeight.w700, color: _charcoal)),
-                          Spacer(),
-                          Icon(Icons.signal_cellular_alt_rounded, size: 46, color: _charcoal),
-                          SizedBox(width: 12),
-                          Icon(Icons.wifi_rounded, size: 46, color: _charcoal),
-                          SizedBox(width: 12),
-                          Icon(Icons.battery_full_rounded, size: 50, color: _charcoal),
+                        padding: EdgeInsets.only(left: 96 * k, right: 84 * k, top: 18 * k),
+                        child: Row(children: [
+                          Text('9:41', style: TextStyle(fontFamily: 'Inter', fontSize: 44 * k, fontWeight: FontWeight.w700, color: _charcoal)),
+                          const Spacer(),
+                          Icon(Icons.signal_cellular_alt_rounded, size: 46 * k, color: _charcoal),
+                          SizedBox(width: 12 * k),
+                          Icon(Icons.wifi_rounded, size: 46 * k, color: _charcoal),
+                          SizedBox(width: 12 * k),
+                          Icon(Icons.battery_full_rounded, size: 50 * k, color: _charcoal),
                         ]),
                       ),
                     ),
                     // Dynamic Island
                     Positioned(
-                      top: 22,
-                      left: (screenW - 300) / 2,
-                      child: Container(width: 300, height: 86, decoration: BoxDecoration(color: const Color(0xFF050505), borderRadius: BorderRadius.circular(60))),
+                      top: 22 * k,
+                      left: (screenW - 300 * k) / 2,
+                      child: Container(
+                          width: 300 * k,
+                          height: 86 * k,
+                          decoration: BoxDecoration(color: const Color(0xFF050505), borderRadius: BorderRadius.circular(60 * k))),
                     ),
                   ]),
                 ),
