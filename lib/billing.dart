@@ -4,6 +4,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'config.dart';
+import 'notifications.dart';
 
 enum PlanKind { free, trial, monthly, yearly, lifetime }
 
@@ -262,8 +263,13 @@ class Billing extends ChangeNotifier {
     _chosen = kind;
     if (isNew || _since == null) _since = when;
     if (kind != PlanKind.lifetime) {
-      if (p.status == PurchaseStatus.purchased && !_trialEver) _withTrial = true;
+      if (p.status == PurchaseStatus.purchased && !_trialEver) {
+        _withTrial = true;
+        unawaited(Notifier.scheduleTrialReminder(_since ?? DateTime.now(), trialDays));
+      }
       _trialEver = true;
+    } else {
+      unawaited(Notifier.cancelTrialReminder()); // a lifetime purchase has no trial to remind about
     }
     await _save();
     notifyListeners();
@@ -282,6 +288,7 @@ class Billing extends ChangeNotifier {
       _paid = true; // one-time purchase: a real store charges once, here
     } else if (_trialStart == null) {
       _trialStart = DateTime.now();
+      unawaited(Notifier.scheduleTrialReminder(_trialStart!, trialDays));
     } else {
       _paid = true; // trial already used: a real store would charge now
     }
@@ -323,6 +330,7 @@ class Billing extends ChangeNotifier {
   Future<void> cancel() async {
     _cancelled = true;
     _paid = false;
+    unawaited(Notifier.cancelTrialReminder());
     await _save();
     notifyListeners();
   }

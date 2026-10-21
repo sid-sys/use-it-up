@@ -6,6 +6,7 @@ import '../main.dart';
 import '../theme.dart';
 import '../toast.dart';
 import 'profile.dart' show openUrl;
+import 'trial_reminder.dart';
 
 /// Soft paywall. Always dismissible. X and "Maybe later" do the same thing.
 /// [onClose] lets the onboarding flow take over closing; otherwise the screen just pops.
@@ -41,6 +42,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
   /// Nothing is charged until the store confirms the purchase.
   /// A real build opens the App Store or Google Play sheet here, and marks Premium only after it confirms.
   Future<void> _buy() async {
+    // A plan with a free trial first shows "we'll remind you before your trial ends".
+    if (!billing.trialUsed && _plan != PlanKind.lifetime) {
+      final go = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => TrialReminderScreen(plan: _plan)));
+      if (go != true || !mounted) return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -165,7 +171,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     onPressed: _busy ? null : _buy,
                     child: _busy
                         ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: charcoal))
-                        : Text(_error != null ? 'Try again' : (lifetime ? 'Buy lifetime' : (canTrial ? 'Start free trial' : 'Subscribe'))),
+                        : Text(_error != null ? 'Try again' : (lifetime ? 'Buy lifetime' : (canTrial ? 'Start ${AppConfig.trialDays}-day free trial' : 'Subscribe'))),
                   ),
                   const SizedBox(height: 4),
                   TextButton(onPressed: _busy ? null : _close, child: Text('Maybe later', style: body(15.5, FontWeight.w700))),

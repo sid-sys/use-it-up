@@ -15,6 +15,7 @@ import 'screens/onboarding.dart';
 import 'screens/splash.dart';
 import 'screens/profile.dart';
 import 'store.dart';
+import 'review.dart';
 import 'theme.dart';
 import 'toast.dart';
 
@@ -130,7 +131,7 @@ class Shell extends StatefulWidget {
   State<Shell> createState() => _ShellState();
 }
 
-class _ShellState extends State<Shell> {
+class _ShellState extends State<Shell> with WidgetsBindingObserver {
   int _tab = 0;
   int _foodsSub = 0;
   int _foodsKey = 0; // changes when another screen asks for a specific Foods tab
@@ -139,12 +140,23 @@ class _ShellState extends State<Shell> {
   void initState() {
     super.initState();
     openFoods.addListener(_onRequest);
+    WidgetsBinding.instance.addObserver(this);
+    // Once a week, until they have rated: a small "Enjoying Use It Up?" question.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Review.maybeAskWeekly(context);
+    });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     openFoods.removeListener(_onRequest);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) Review.maybeAskWeekly(context);
   }
 
   void _onRequest() {

@@ -8,6 +8,7 @@ import '../billing.dart';
 import '../config.dart';
 import '../main.dart';
 import '../notifications.dart';
+import '../review.dart';
 import '../theme.dart';
 import '../toast.dart';
 import 'feedback_sheet.dart';
@@ -140,6 +141,12 @@ class ProfileScreen extends StatelessWidget {
                 subtitle: const Text(AppConfig.contactEmail),
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () => openUrl(context, 'mailto:${AppConfig.contactEmail}'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.star_outline_rounded),
+                title: const Text('Rate Use It Up'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Review.rateNow(context),
               ),
               ListTile(
                 leading: const Icon(Icons.feedback_outlined),

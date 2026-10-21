@@ -34,7 +34,7 @@ class UserDetailScreen extends StatelessWidget {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(user.displayName, style: body(18, FontWeight.w800), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text(user.email.isEmpty ? 'No email (guest)' : user.email, style: body(12.5, FontWeight.w400, muted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(user.subtitleLine, style: body(12.5, FontWeight.w400, muted), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ]),
                 ),
                 PlanPill(user.plan),

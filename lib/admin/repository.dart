@@ -4,6 +4,7 @@ import '../auth.dart';
 import '../billing.dart';
 import '../config.dart';
 import '../feedback_log.dart';
+import '../install_id.dart';
 import '../main.dart' show billing, store;
 import 'admin_config.dart';
 import 'models.dart';
@@ -39,8 +40,9 @@ class LocalAdminRepository implements AdminRepository {
       for (final e in events.where((e) => e.type == Ev.payFailed)) AdminPayFailure(e.time, e.detail, ''),
     ];
     final signedIn = Auth.signedIn;
+    final installId = await InstallId.get();
     final user = AdminUser(
-      id: 'this-phone',
+      id: installId,
       name: signedIn ? Auth.displayName : '',
       email: Auth.email ?? '',
       country: '-',
@@ -68,7 +70,7 @@ class LocalAdminRepository implements AdminRepository {
     ];
     return AdminData(
       users: [user],
-      devices: [AdminDevice(installId: 'this-phone', ownerId: user.id, installedAt: first, lastSeen: last)],
+      devices: [AdminDevice(installId: installId, ownerId: user.id, installedAt: first, lastSeen: last)],
       feedback: feedback,
       serverConnected: false,
     );
@@ -89,7 +91,7 @@ class MockAdminRepository implements AdminRepository {
   static const _problems = ['forget_fridge', 'expires_first', 'buy_more', 'leftovers', 'everything'];
   static const _households = ['just_me', 'two', 'three_four', 'five_plus'];
   static const _sourceWeights = <(String, double)>[
-    ('friend', .28), ('social', .24), ('store', .18), ('youtube', .1), ('google', .1), ('other', .1),
+    ('friend', .2), ('tiktok', .18), ('instagram', .17), ('store', .14), ('youtube', .1), ('facebook', .07), ('google', .08), ('other', .06),
   ];
   static const _feedbackTexts = [
     ('Feedback', 'Love the Eat me first cards. Could I add a barcode scan?'),
@@ -105,6 +107,8 @@ class MockAdminRepository implements AdminRepository {
     await Future<void>.delayed(const Duration(milliseconds: 250));
     return build(DateTime.now());
   }
+
+  static String _hex(Random r, int n) => List.generate(n, (_) => r.nextInt(16).toRadixString(16)).join();
 
   String _pickSource(Random r) {
     var x = r.nextDouble();
@@ -225,7 +229,7 @@ class MockAdminRepository implements AdminRepository {
 
       final last = events.first.time;
       final seenRecently = now.difference(last).inHours < 36;
-      final id = 'u${1000 + i}';
+      final id = _hex(r, 12);
       users.add(AdminUser(
         id: id,
         name: guest ? '' : name,
@@ -265,10 +269,12 @@ class MockAdminRepository implements AdminRepository {
     }
 
     // Accounts that "Real users only" must hide. Each one fits one rule.
-    int n = 0;
+    var n = 0;
+    final sr = Random(7);
     AdminUser special(String name, String email, {bool testPurchase = false, int? seconds, AdminPlan plan = AdminPlan.none}) {
       final joined = now.subtract(Duration(days: 2 + n * 3, hours: n));
-      final id = 'x${900 + n++}';
+      final id = 'x9${_hex(sr, 10)}';
+      n++;
       final pays = plan == AdminPlan.yearly ? [AdminPayment(joined.add(const Duration(hours: 1)), AppConfig.yearlyPrice)] : <AdminPayment>[];
       final ev = <AdminEvent>[
         AdminEvent(now.subtract(const Duration(hours: 2)), Ev.opened, ''),

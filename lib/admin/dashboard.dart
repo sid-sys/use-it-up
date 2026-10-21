@@ -187,26 +187,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ],
     );
 
-    final anyInstalls = s.installs30.any((d) => d.installed.isNotEmpty || d.uninstalled.isNotEmpty);
-    final installs = SectionCard(
-      title: 'Installs and uninstalls',
-      sub: 'Last 30 days. Tap a day to see who.',
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (anyInstalls)
-          InstallsChart(days: s.installs30, devices: data.devices)
-        else
-          Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text('No installs yet', style: body(14, FontWeight.w600, muted))),
-        const _HowCounted(),
-      ]),
-    );
-
-    final dau = SectionCard(
-      title: 'Daily active users',
-      sub: 'Last 14 days',
-      child: s.dau14.every((v) => v == 0)
-          ? Text('Nobody was active yet', style: body(14, FontWeight.w600, muted))
-          : DauChart(values: s.dau14),
-    );
+    // ONE chart card: a switch between "Active users" and "Installs and uninstalls".
+    final activity = ActivityCard(stats: s, devices: data.devices);
 
     final funnel = SectionCard(
       title: 'From joining to subscribing',
@@ -305,8 +287,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
       const gap = SizedBox(height: 16);
       final wide = c.maxWidth >= 900;
       final top = <Widget>[header, ?notice, realUsers];
-      final left = <Widget>[cards, installs, problems];
-      final right = <Widget>[dau, funnel, sources];
+      final left = <Widget>[cards, activity, problems];
+      final right = <Widget>[funnel, sources];
       final bottom = <Widget>[notifications, buttons];
       Widget stack(List<Widget> l) => Column(children: [for (final w in l) ...[w, gap]]);
       return Center(
@@ -337,41 +319,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         for (final f in u.failures) (u.displayName, f),
     ]..sort((a, b) => b.$2.time.compareTo(a.$2.time));
     return all;
-  }
-}
-
-/// "How is this counted?" in plain words. Matches how the server must record installs.
-class _HowCounted extends StatelessWidget {
-  const _HowCounted();
-
-  @override
-  Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: const EdgeInsets.only(bottom: 8),
-        title: Text('How is this counted?', style: body(14, FontWeight.w700)),
-        children: [
-          for (final t in const [
-            'Each phone tells our server about itself once a day. The server keeps one record per phone, so a phone counts once even if many accounts use it.',
-            'An install is counted on the day Android says the app was installed on that phone. A phone that only updated the app still counts on its real install day.',
-            'An uninstall is counted when Google tells us the phone no longer has the app. Nothing is guessed. Once a day the server asks Google to check every phone quietly, and nobody gets a message.',
-            'An uninstall can show a day or two late. A phone that was switched off for a long time is only noticed when Google answers. If a phone reports in again later, the uninstall is removed.',
-            'The net for a day is installs minus uninstalls.',
-            'With "Real users only" on, only phones owned by real people are counted.',
-            'This is measured on Android. On iPhone, Apple does not tell apps when someone deletes them, so uninstalls cannot be counted there.',
-          ])
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('•  ', style: body(13, FontWeight.w700)),
-                Expanded(child: Text(t, style: body(13, FontWeight.w400, muted))),
-              ]),
-            ),
-        ],
-      ),
-    );
   }
 }
 

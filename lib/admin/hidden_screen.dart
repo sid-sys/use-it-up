@@ -37,7 +37,7 @@ class HiddenAccountsScreen extends StatelessWidget {
                           Expanded(
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Text(u.displayName, style: body(15, FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-                              Text(u.email.isEmpty ? 'No email (guest)' : u.email, style: body(12, FontWeight.w400, muted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Text(u.subtitleLine, style: body(12, FontWeight.w400, muted), maxLines: 1, overflow: TextOverflow.ellipsis),
                             ]),
                           ),
                           const SizedBox(width: 8),

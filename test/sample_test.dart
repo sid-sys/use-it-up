@@ -54,7 +54,18 @@ void main() {
     await tester.tap(find.text('Add food'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Free plan holds 20 foods'), findsOneWidget);
-    expect(find.text('Start free trial'), findsOneWidget);
+    expect(find.text('Start 7-day free trial'), findsOneWidget);
+
+    // Start 7-day free trial first shows "we will remind you before the trial ends". Back buys nothing.
+    await tester.tap(find.text('Start 7-day free trial'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('REMINDER BEFORE'), findsOneWidget);
+    expect(find.text('No commitment, cancel anytime'), findsOneWidget);
+    expect(find.textContaining('7 days free, then'), findsOneWidget);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(app.billing.isPremium, isFalse);
+    expect(find.text('Start 7-day free trial'), findsOneWidget);
 
     // Restore purchases shows progress and then always says what happened
     rootMessenger.currentState?.clearSnackBars(); // a message at the bottom would cover the button

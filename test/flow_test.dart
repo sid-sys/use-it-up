@@ -26,7 +26,7 @@ Future<void> loadFonts() async {
 }
 
 void main() {
-  testWidgets('first run: welcome, sign up, 4 questions, reminders, paywall, home', (tester) async {
+  testWidgets('first run: welcome, sign up, questions, rating, paywall, home', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -52,30 +52,41 @@ void main() {
     expect(Auth.displayName, 'Demo Google'); // name comes from the email
 
     // 3. Question 1: pick, continue
-    expect(find.text('1 of 4'), findsOneWidget);
+    expect(find.textContaining('GETS FORGOTTEN'), findsOneWidget);
     await tapText(tester, 'Leftovers get forgotten');
     await tapText(tester, 'Continue');
 
-    // Question 2: skip
-    expect(find.text('2 of 4'), findsOneWidget);
-    await tapText(tester, 'Skip');
+    // Question 2: Continue with nothing chosen still moves on
+    expect(find.textContaining('SHOPPING FOR'), findsOneWidget);
+    await tapText(tester, 'Continue');
+
+    // "Waste less food with Use It Up vs on your own"
+    expect(find.textContaining('WASTE LESS FOOD WITH'), findsOneWidget);
+    expect(find.text('Used in time'), findsOneWidget);
+    await tapText(tester, 'Continue');
 
     // Question 3: choose "1 day before"
-    expect(find.text('3 of 4'), findsOneWidget);
+    expect(find.textContaining('HEADS-UP'), findsOneWidget);
     await tapText(tester, '1 day before');
     await tapText(tester, 'Continue');
 
     // Question 4: where they heard about us, then finish
-    expect(find.text('4 of 4'), findsOneWidget);
+    expect(find.textContaining('HEAR ABOUT US'), findsOneWidget);
+    expect(find.text('TikTok'), findsOneWidget);
+    expect(find.text('Instagram'), findsOneWidget);
     await tapText(tester, 'YouTube');
-    await tapText(tester, 'Finish setup');
+    await tapText(tester, 'Continue');
 
     // 4. Notification explanation
     expect(find.textContaining("We'll remind you before your food's expiry date"), findsOneWidget);
     await tapText(tester, 'Continue');
 
+    // Ask for a rating. Not now is fine: we ask again in a week.
+    expect(find.textContaining('GIVE US A'), findsOneWidget);
+    await tapText(tester, 'Not now');
+
     // 5. Soft paywall, dismissible
-    expect(find.text('Start free trial'), findsOneWidget);
+    expect(find.text('Start 7-day free trial'), findsOneWidget);
     expect(find.text('Maybe later'), findsOneWidget);
     expect(find.byTooltip('Close'), findsOneWidget);
     await tapText(tester, 'Maybe later');

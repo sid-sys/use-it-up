@@ -26,7 +26,7 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle();
 
-    expect(find.text('2 of 4'), findsOneWidget);
+    expect(find.textContaining('SHOPPING FOR'), findsOneWidget);
     expect(app.store.problem, 'buy_more');
     expect(app.store.onboarded, isFalse);
   });

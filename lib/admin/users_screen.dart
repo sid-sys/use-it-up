@@ -51,7 +51,7 @@ class _UsersScreenState extends State<UsersScreen> {
     final now = DateTime.now();
     final far = DateTime.fromMillisecondsSinceEpoch(0);
     final list = widget.users.where((u) {
-      if (_q.isNotEmpty && !('${u.displayName} ${u.email}'.toLowerCase().contains(_q.toLowerCase()))) return false;
+      if (_q.isNotEmpty && !('${u.displayName} ${u.name} ${u.email}'.toLowerCase().contains(_q.toLowerCase()))) return false;
       return switch (_f) {
         UserFilter.all => true,
         UserFilter.subscribed => u.plan != AdminPlan.none,
@@ -73,7 +73,7 @@ class _UsersScreenState extends State<UsersScreen> {
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
           child: TextField(
             onChanged: (v) => setState(() => _q = v),
-            decoration: const InputDecoration(hintText: 'Search name or email', prefixIcon: Icon(Icons.search)),
+            decoration: const InputDecoration(hintText: 'Search by name or email', prefixIcon: Icon(Icons.search)),
           ),
         ),
         SizedBox(
@@ -165,8 +165,7 @@ class UserRow extends StatelessWidget {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(user.displayName, style: body(15, FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Text(user.email.isEmpty ? 'No email (guest)' : user.email,
-                      style: body(12, FontWeight.w400, muted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(user.subtitleLine, style: body(12, FontWeight.w400, muted), maxLines: 1, overflow: TextOverflow.ellipsis),
                   Text('Joined ${DateFormat('d MMM').format(user.joinedAt)} · Seen ${timeAgo(user.lastSeen)}',
                       style: body(11.5, FontWeight.w400, muted), maxLines: 1, overflow: TextOverflow.ellipsis),
                   if (extra != null && extra!.isNotEmpty) Text(extra!, style: body(11.5, FontWeight.w700)),

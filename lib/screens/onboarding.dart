@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../analytics.dart';
 import '../auth.dart';
 import '../config.dart';
 import '../main.dart';
 import '../notifications.dart';
+import '../review.dart';
 import '../theme.dart';
 import '../toast.dart';
 import 'paywall.dart';
@@ -18,7 +20,10 @@ class OnboardingFlow extends StatefulWidget {
   State<OnboardingFlow> createState() => _OnboardingFlowState();
 }
 
-enum _Step { welcome, signup, q1, q2, q3, q4, notify, paywall }
+enum _Step { welcome, signup, q1, q2, compare, q3, q4, notify, review, paywall }
+
+/// The screens that share the progress bar at the top.
+const _barSteps = [_Step.q1, _Step.q2, _Step.compare, _Step.q3, _Step.q4, _Step.review];
 
 class _OnboardingFlowState extends State<OnboardingFlow> {
   late _Step _step = _Step.values[store.onbStep.clamp(0, _Step.values.length - 1)];
@@ -31,6 +36,8 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   void _back() {
     if (_step.index > 0) _go(_Step.values[_step.index - 1]);
   }
+
+  double _progress(_Step s) => (_barSteps.indexOf(s) + 1) / _barSteps.length;
 
   @override
   Widget build(BuildContext context) {
@@ -55,26 +62,26 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       case _Step.welcome:
         return _Welcome(onStart: () {
           Analytics.instance.log(Ev.onboardingStarted);
-          _go(_Step.signup);
+          // Someone who already signed in, or already chose guest, is not asked again.
+          _go(Auth.instance.provider != null ? _Step.q1 : _Step.signup);
         });
       case _Step.signup:
         return _SignUp(onBack: _back, onDone: () => _go(_Step.q1));
       case _Step.q1:
         return _Question(
-          kicker: 'PERSONALIZE YOUR EXPERIENCE',
-          index: 1,
+          progress: _progress(_Step.q1),
           title: 'WHAT USUALLY\nGETS FORGOTTEN?',
           subtitle: 'Choose the one that sounds most like you.',
           options: const [
-            _Opt('forget_fridge', "I forget what's in my fridge"),
-            _Opt('expires_first', 'Food expires before I use it'),
-            _Opt('buy_more', 'I buy more than I need'),
-            _Opt('leftovers', 'Leftovers get forgotten'),
-            _Opt('everything', 'A bit of everything'),
+            _Opt('forget_fridge', "I forget what's in my fridge", icon: Icons.kitchen_outlined),
+            _Opt('expires_first', 'Food expires before I use it', icon: Icons.timer_outlined),
+            _Opt('buy_more', 'I buy more than I need', icon: Icons.shopping_cart_outlined),
+            _Opt('leftovers', 'Leftovers get forgotten', icon: Icons.takeout_dining_outlined),
+            _Opt('everything', 'A bit of everything', icon: Icons.apps_rounded),
           ],
           initial: store.problem,
           button: 'Continue',
-          footer: 'You can change your preferences later.',
+          footer: 'Optional. You can continue without choosing.',
           onBack: _back,
           onNext: (v) {
             store.saveOnboarding(problem: v);
@@ -84,36 +91,36 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         );
       case _Step.q2:
         return _Question(
-          kicker: 'YOUR HOUSEHOLD',
-          index: 2,
+          progress: _progress(_Step.q2),
           title: 'HOW MANY PEOPLE\nARE YOU SHOPPING FOR?',
           subtitle: "We'll use this to tailor your food-saving suggestions.",
           options: const [
-            _Opt('just_me', 'Just me'),
-            _Opt('two', '2 people'),
-            _Opt('three_four', '3–4 people'),
-            _Opt('five_plus', '5+ people'),
+            _Opt('just_me', 'Just me', icon: Icons.person_outline),
+            _Opt('two', '2 people', icon: Icons.people_outline),
+            _Opt('three_four', '3–4 people', icon: Icons.groups_outlined),
+            _Opt('five_plus', '5+ people', icon: Icons.diversity_3_outlined),
           ],
           initial: store.household,
           button: 'Continue',
-          footer: 'Optional. You can skip this.',
+          footer: 'Optional. You can continue without choosing.',
           onBack: _back,
           onNext: (v) {
             store.saveOnboarding(household: v);
-            _go(_Step.q3);
+            _go(_Step.compare);
           },
-          onSkip: () => _go(_Step.q3),
+          onSkip: () => _go(_Step.compare),
         );
+      case _Step.compare:
+        return _Compare(progress: _progress(_Step.compare), onBack: _back, onNext: () => _go(_Step.q3));
       case _Step.q3:
         return _Question(
-          kicker: 'YOUR REMINDERS',
-          index: 3,
+          progress: _progress(_Step.q3),
           title: 'WHEN SHOULD WE\nGIVE YOU A HEADS-UP?',
           subtitle: "Choose how early you'd like to know about food expiring soon.",
           options: const [
-            _Opt('three', '3 days before', 'More time to plan meals'),
-            _Opt('one', '1 day before', 'A helpful reminder, without too much noise'),
-            _Opt('both', 'Both', 'An early heads-up and a final reminder'),
+            _Opt('three', '3 days before', sub: 'More time to plan meals', icon: Icons.event_outlined),
+            _Opt('one', '1 day before', sub: 'A helpful reminder, without too much noise', icon: Icons.today_outlined),
+            _Opt('both', 'Both', sub: 'An early heads-up and a final reminder', icon: Icons.notifications_active_outlined),
           ],
           initial: store.remindWhen,
           button: 'Continue',
@@ -131,21 +138,22 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         );
       case _Step.q4:
         return _Question(
-          kicker: 'ONE LAST THING',
-          index: 4,
-          title: 'HOW DID YOU\nHEAR ABOUT US?',
+          progress: _progress(_Step.q4),
+          title: 'WHERE DID YOU\nHEAR ABOUT US?',
           subtitle: 'This helps us reach more people who waste less food.',
           options: const [
-            _Opt('friend', 'A friend or family'),
-            _Opt('social', 'Instagram or TikTok'),
-            _Opt('youtube', 'YouTube'),
-            _Opt('store', 'App Store or Play Store search'),
-            _Opt('google', 'Google search'),
-            _Opt('other', 'Somewhere else'),
+            _Opt('tiktok', 'TikTok', icon: FontAwesomeIcons.tiktok),
+            _Opt('instagram', 'Instagram', icon: FontAwesomeIcons.instagram),
+            _Opt('youtube', 'YouTube', icon: FontAwesomeIcons.youtube),
+            _Opt('facebook', 'Facebook', icon: FontAwesomeIcons.facebook),
+            _Opt('store', 'App Store or Play Store', icon: Icons.storefront_outlined),
+            _Opt('google', 'Google search', icon: FontAwesomeIcons.google),
+            _Opt('friend', 'A friend or family', icon: Icons.people_alt_outlined),
+            _Opt('other', 'Somewhere else', icon: Icons.more_horiz_rounded),
           ],
           initial: store.heardFrom,
-          button: 'Finish setup',
-          footer: 'Optional. You can skip this.',
+          button: 'Continue',
+          footer: 'Optional. You can continue without choosing.',
           onBack: _back,
           onNext: (v) async {
             await store.saveOnboarding(heardFrom: v);
@@ -159,7 +167,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           },
         );
       case _Step.notify:
-        return _NotifySetup(onDone: () => _go(_Step.paywall));
+        return _NotifySetup(onDone: () => _go(_Step.review));
+      case _Step.review:
+        return _ReviewStep(progress: _progress(_Step.review), onBack: _back, onDone: () => _go(_Step.paywall));
       case _Step.paywall:
         return PaywallScreen(fromOnboarding: true, onClose: () => store.finishOnboarding());
     }
@@ -407,18 +417,54 @@ class _SignUpState extends State<_SignUp> {
       );
 }
 
-// ---------------------------------------------------------- 3-5. Questions
+// ---------------------------------------------------------- Question screens
 
 class _Opt {
   final String id;
   final String label;
   final String? sub;
-  const _Opt(this.id, this.label, [this.sub]);
+  final Object? icon; // a Material icon, or a Font Awesome brand icon
+  const _Opt(this.id, this.label, {this.sub, this.icon});
+}
+
+/// Back button, a progress bar and Skip. The same on every question screen.
+class _TopBar extends StatelessWidget {
+  final double progress;
+  final VoidCallback onBack;
+  final VoidCallback? onSkip;
+  const _TopBar({required this.progress, required this.onBack, this.onSkip});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      IconButton.filled(
+        style: IconButton.styleFrom(backgroundColor: cardWhite, foregroundColor: charcoal, fixedSize: const Size(46, 46)),
+        tooltip: 'Back',
+        icon: const Icon(Icons.arrow_back),
+        onPressed: onBack,
+      ),
+      const SizedBox(width: 14),
+      Expanded(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: progress.clamp(0.0, 1.0)),
+            duration: const Duration(milliseconds: 350),
+            builder: (_, v, _) => LinearProgressIndicator(value: v, minHeight: 9, color: charcoal, backgroundColor: const Color(0xFFD9D8CC)),
+          ),
+        ),
+      ),
+      const SizedBox(width: 6),
+      if (onSkip != null)
+        TextButton(onPressed: onSkip, child: Text('Skip', style: body(15, FontWeight.w700)))
+      else
+        const SizedBox(width: 12),
+    ]);
+  }
 }
 
 class _Question extends StatefulWidget {
-  final String kicker;
-  final int index; // 1..4
+  final double progress;
   final String title;
   final String subtitle;
   final List<_Opt> options;
@@ -430,8 +476,7 @@ class _Question extends StatefulWidget {
   final VoidCallback onSkip;
 
   const _Question({
-    required this.kicker,
-    required this.index,
+    required this.progress,
     required this.title,
     required this.subtitle,
     required this.options,
@@ -453,45 +498,25 @@ class _QuestionState extends State<_Question> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 4, 24, 20),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          IconButton(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back), padding: EdgeInsets.zero),
-          const Spacer(),
-          TextButton(onPressed: widget.onSkip, child: Text('Skip', style: body(15, FontWeight.w700))),
-        ]),
-        Text(widget.kicker, style: body(12, FontWeight.w800, Colors.black54).copyWith(letterSpacing: 1.2)),
-        const SizedBox(height: 10),
-        Row(children: [
-          for (var i = 1; i <= 4; i++)
-            Expanded(
-              child: Container(
-                height: 6,
-                margin: EdgeInsets.only(right: i < 4 ? 6 : 0),
-                decoration: BoxDecoration(
-                  color: i <= widget.index ? charcoal : const Color(0xFFD9D8CC),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ),
-          const SizedBox(width: 12),
-          Text('${widget.index} of 4', style: body(12.5, FontWeight.w700)),
-        ]),
+        _TopBar(progress: widget.progress, onBack: widget.onBack, onSkip: widget.onSkip),
         const SizedBox(height: 22),
         Text(widget.title, style: display(34)),
         const SizedBox(height: 8),
         Text(widget.subtitle, style: body(15, FontWeight.w400, Colors.black54)),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
         Expanded(
           child: ListView(children: [
-            for (final o in widget.options)
+            for (final (i, o) in widget.options.indexed)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: _OptionCard(opt: o, selected: _sel == o.id, onTap: () => setState(() => _sel = o.id)),
+                child: _OptionRow(number: i + 1, opt: o, selected: _sel == o.id, onTap: () => setState(() => _sel = _sel == o.id ? null : o.id)),
               ),
           ]),
         ),
         const SizedBox(height: 8),
+        // Always active: with no choice made, Continue simply moves on.
         FilledButton(
           style: limeButton(),
           onPressed: () => _sel == null ? widget.onSkip() : widget.onNext(_sel!),
@@ -504,11 +529,13 @@ class _QuestionState extends State<_Question> {
   }
 }
 
-class _OptionCard extends StatelessWidget {
+/// One answer: a number, an icon and the words.
+class _OptionRow extends StatelessWidget {
+  final int number;
   final _Opt opt;
   final bool selected;
   final VoidCallback onTap;
-  const _OptionCard({required this.opt, required this.selected, required this.onTap});
+  const _OptionRow({required this.number, required this.opt, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -517,31 +544,188 @@ class _OptionCard extends StatelessWidget {
       selected: selected,
       label: opt.label,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(30),
         onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 64),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          constraints: const BoxConstraints(minHeight: 68),
+          padding: const EdgeInsets.fromLTRB(12, 10, 18, 10),
           decoration: BoxDecoration(
-            color: selected ? lime.withValues(alpha: 0.5) : cardWhite,
-            borderRadius: BorderRadius.circular(18),
+            color: selected ? lime.withValues(alpha: 0.55) : cardWhite,
+            borderRadius: BorderRadius.circular(30),
             border: Border.all(color: selected ? charcoal : Colors.transparent, width: 2),
           ),
           child: Row(children: [
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: selected ? charcoal : const Color(0xFFE8E7DC), shape: BoxShape.circle),
+              child: Text('$number', style: body(17, FontWeight.w700, selected ? lime : Colors.black54)),
+            ),
+            const SizedBox(width: 14),
+            if (opt.icon != null) ...[
+              SizedBox(
+                width: 26,
+                child: Center(
+                  child: opt.icon is FaIconData
+                      ? FaIcon(opt.icon as FaIconData, size: 22, color: charcoal)
+                      : Icon(opt.icon as IconData, size: 24, color: charcoal),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(opt.label, style: body(16.5, FontWeight.w700)),
                 if (opt.sub != null) Text(opt.sub!, style: body(13, FontWeight.w400, Colors.black54)),
               ]),
             ),
-            const SizedBox(width: 10),
-            Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked, color: selected ? charcoal : Colors.black38),
           ]),
         ),
       ),
     );
   }
 }
+
+/// "With Use It Up vs on your own". It makes no number up: the bars show the idea, not a measurement.
+class _Compare extends StatelessWidget {
+  final double progress;
+  final VoidCallback onBack;
+  final VoidCallback onNext;
+  const _Compare({required this.progress, required this.onBack, required this.onNext});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _TopBar(progress: progress, onBack: onBack, onSkip: null),
+        const SizedBox(height: 22),
+        Text('WASTE LESS FOOD WITH\nUSE IT UP VS ON YOUR OWN', style: display(30)),
+        const SizedBox(height: 18),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+            decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(28)),
+            child: Column(children: [
+              Row(children: [
+                Expanded(child: Text('On your\nown', textAlign: TextAlign.center, style: body(15, FontWeight.w600, Colors.black45))),
+                Expanded(child: Text('With\nUse It Up', textAlign: TextAlign.center, style: body(15, FontWeight.w800))),
+              ]),
+              Expanded(
+                child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Expanded(child: _GrowBar(fraction: 0.16, colors: const [Color(0xFFE6E6EA), Color(0xFFE6E6EA)])),
+                  const SizedBox(width: 14),
+                  Expanded(child: _GrowBar(fraction: 1, colors: const [Color(0xFFB7DD2E), lime])),
+                ]),
+              ),
+              const SizedBox(height: 14),
+              Row(children: [
+                Expanded(child: _Pill('Forgotten', const Color(0xFFD9D9DE), Colors.black54)),
+                Expanded(child: _Pill('Used in time', charcoal, lime)),
+              ]),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Center(
+          child: Text('Use It Up reminds you before your food expires, so you eat it in time.',
+              textAlign: TextAlign.center, style: body(14.5, FontWeight.w400, Colors.black54)),
+        ),
+        const SizedBox(height: 14),
+        FilledButton(style: limeButton(), onPressed: onNext, child: const Text('Continue')),
+      ]),
+    );
+  }
+}
+
+class _GrowBar extends StatelessWidget {
+  final double fraction;
+  final List<Color> colors;
+  const _GrowBar({required this.fraction, required this.colors});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, c) {
+      return TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: fraction),
+        duration: const Duration(milliseconds: 900),
+        curve: Curves.easeOutCubic,
+        builder: (_, v, _) => Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            height: (c.maxHeight - 8) * v + 8,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: colors),
+            ),
+          ),
+        ),
+      );
+    });
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final String text;
+  final Color bg;
+  final Color fg;
+  const _Pill(this.text, this.bg, this.fg);
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(22)),
+          child: Text(text, style: body(15, FontWeight.w700, fg)),
+        ),
+      );
+}
+
+/// Asks for a rating. "Rate us" opens the store's own rating box.
+class _ReviewStep extends StatelessWidget {
+  final double progress;
+  final VoidCallback onBack;
+  final VoidCallback onDone;
+  const _ReviewStep({required this.progress, required this.onBack, required this.onDone});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+      child: Column(children: [
+        _TopBar(progress: progress, onBack: onBack, onSkip: null),
+        const Spacer(),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          for (var i = 0; i < 5; i++) const Padding(padding: EdgeInsets.symmetric(horizontal: 3), child: Icon(Icons.star_rounded, size: 50, color: Color(0xFFF5B800))),
+        ]),
+        const SizedBox(height: 22),
+        Text('GIVE US A\nRATING', textAlign: TextAlign.center, style: display(46)),
+        const SizedBox(height: 12),
+        Text('Your rating helps more people find Use It Up and waste less food.', textAlign: TextAlign.center, style: body(16, FontWeight.w400, Colors.black54)),
+        const Spacer(flex: 2),
+        FilledButton(
+          style: limeButton(),
+          onPressed: () async {
+            await Review.rateNow(context);
+            onDone();
+          },
+          child: const Text('Rate us'),
+        ),
+        const SizedBox(height: 6),
+        TextButton(
+          onPressed: () async {
+            await Review.markAsked(); // we will ask again in a week
+            onDone();
+          },
+          child: Text('Not now', style: body(15.5, FontWeight.w700)),
+        ),
+      ]),
+    );
+  }
+}
+
 
 // ----------------------------------------------------- 4. Notification setup
 

@@ -119,6 +119,49 @@ class Notifier {
     if (p.onDay) await at(2, 0, '🔔 Check your $n today.');
   }
 
+  static const _trialId = 900000200;
+
+  /// "Your trial ends in 2 days." This is the reminder the trial screen promises.
+  /// Planned for 10:00, two days before the trial ends.
+  static Future<void> scheduleTrialReminder(DateTime trialStart, int trialDays) async {
+    if (!supported) return;
+    try {
+      await init();
+      final end = trialStart.add(Duration(days: trialDays));
+      final when = tz.TZDateTime(tz.local, end.year, end.month, end.day, 10).subtract(const Duration(days: 2));
+      if (!when.isAfter(tz.TZDateTime.now(tz.local))) return;
+      const msg = '⏰ Your free trial ends in 2 days. You can cancel any time in your store settings.';
+      await _plugin.cancel(id: _trialId);
+      await _plugin.zonedSchedule(
+        id: _trialId,
+        title: 'Use It Up',
+        body: msg,
+        scheduledDate: when,
+        notificationDetails: _details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+      await NotificationLog.instance.add(NotifEntry(
+        id: _trialId,
+        kind: 'trial',
+        title: 'Use It Up',
+        body: msg,
+        createdAt: DateTime.now(),
+        fireAt: when,
+      ));
+    } catch (e) {
+      debugPrint('Could not plan the trial reminder: $e');
+    }
+  }
+
+  static Future<void> cancelTrialReminder() async {
+    if (!supported) return;
+    try {
+      await init();
+      await _plugin.cancel(id: _trialId);
+      await NotificationLog.instance.markCancelled(_trialId);
+    } catch (_) {}
+  }
+
   static const _weeklyBase = 900000000;
   static const _inactiveId = 900000100;
 

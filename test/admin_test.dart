@@ -121,11 +121,44 @@ void main() {
       expect(s.payProblems.keys.toSet(), {'cancelled', 'failed', 'store_unavailable'});
     });
 
-    test('guests get a made-up name that stays the same', () {
-      final g = data.users.firstWhere((u) => u.isGuest);
-      expect(g.displayName, isNotEmpty);
-      expect(g.displayName, guestName(g.id));
-      expect(guestName('abc'), guestName('abc'));
+    test('names are real: the name, else the email, else "Guest" and 6 characters. Never made up', () {
+      expect(user('Aarav Sharma', 'a@example.com').displayName, 'Aarav Sharma');
+      expect(user('', 'a@example.com').displayName, 'a@example.com');
+      expect(user('', 'a@example.com').subtitleLine, 'No name given');
+      final guest = AdminUser(
+        id: '3f9a2c1e77aa',
+        name: '',
+        email: '',
+        country: 'India',
+        joinedAt: now,
+        lastSeen: now,
+        isGuest: true,
+        paywallViews: 0,
+        paymentAttempts: 0,
+        plan: AdminPlan.none,
+        subscribedAt: null,
+        payments: const [],
+        events: const [],
+        streak: 0,
+      );
+      expect(guest.displayName, 'Guest 3f9a2c');
+      expect(guest.subtitleLine, 'No name, no email');
+      for (final u in data.users) {
+        final ok = u.displayName == u.name || u.displayName == u.email || u.displayName == 'Guest ${u.id.substring(0, 6)}';
+        expect(ok, isTrue, reason: 'every name is the real name, the email or Guest plus the id: ${u.displayName}');
+      }
+      expect(data.users.any((u) => u.displayName.startsWith('Guest ')), isTrue);
+      expect(data.users.every((u) => !RegExp(r'^User \d+$|^Person \d+$').hasMatch(u.displayName)), isTrue);
+    });
+
+    test('the active bars list the people who opened the app that day', () {
+      final real = data.users.where((u) => u.hiddenReason == null).toList();
+      final s = AdminStats.from(real, data.devices, now);
+      expect(s.active30.length, 30);
+      for (final d in s.active30) {
+        expect(d.users.every((u) => u.events.any((e) => DateUtils.isSameDay(e.time, d.day))), isTrue);
+      }
+      expect(s.active30.any((d) => d.users.isNotEmpty), isTrue);
     });
   });
 
@@ -145,7 +178,7 @@ void main() {
     expect(find.text('ADMIN PANEL'), findsOneWidget);
     expect(find.text('Real users only'), findsOneWidget);
     expect(find.text('Hiding 10 test, review and my own accounts'), findsOneWidget);
-    expect(find.text('Installs and uninstalls'), findsOneWidget);
+    expect(find.text('Installs and uninstalls'), findsOneWidget); // the second half of the chart switch
     expect(find.text('From joining to subscribing'), findsOneWidget);
     expect(find.text('When paying did not happen'), findsOneWidget);
     expect(find.text('Where people heard about us'), findsOneWidget);
@@ -157,6 +190,53 @@ void main() {
     expect(find.text('HIDDEN ACCOUNTS'), findsOneWidget);
     expect(find.text('Your own account'), findsOneWidget);
     expect(find.text('Google test robot'), findsNWidgets(2));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // ONE chart card with a switch. It opens on "Active users".
+    expect(find.text('Active users'), findsOneWidget);
+    expect(find.byKey(const ValueKey('active-chart')), findsOneWidget);
+    expect(find.byKey(const ValueKey('installs-chart')), findsNothing);
+    final real = MockAdminRepository().build(DateTime.now()).users.where((u) => u.hiddenReason == null).toList();
+    final stats = AdminStats.from(real, MockAdminRepository().build(DateTime.now()).devices, DateTime.now());
+
+    // Tap today's bar: the people behind it open straight away.
+    await tester.tap(find.byKey(const ValueKey('bar-active-29')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ACTIVE ON'), findsOneWidget);
+    if (stats.active30.last.users.isEmpty) {
+      expect(find.text('Nobody was active that day'), findsOneWidget);
+    } else {
+      expect(find.byType(Card), findsNothing); // rows, not a day screen
+      await tester.tap(find.text(stats.active30.last.users.first.displayName).first);
+      await tester.pumpAndSettle();
+      expect(find.text('USER'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // The switch swaps the bars inside the same card.
+    await tester.tap(find.text('Installs and uninstalls'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('installs-chart')), findsOneWidget);
+    expect(find.byKey(const ValueKey('active-chart')), findsNothing);
+    expect(find.textContaining('Installed '), findsWidgets);
+    expect(find.textContaining('Uninstalled '), findsWidgets);
+
+    // A bar with nobody behind it says so.
+    final today = stats.installs30.last;
+    await tester.tap(find.byKey(const ValueKey('bar-installed-29')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('INSTALLED ON'), findsOneWidget);
+    if (today.installed.isEmpty) expect(find.text('Nobody installed that day'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bar-uninstalled-29')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('UNINSTALLED ON'), findsOneWidget);
+    if (today.uninstalled.isEmpty) expect(find.text('Nobody uninstalled that day'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
 

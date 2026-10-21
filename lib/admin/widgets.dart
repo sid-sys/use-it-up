@@ -31,8 +31,11 @@ String timeAgo(DateTime t) {
 }
 
 String initials(String name) {
-  final p = name.trim().split(' ').where((s) => s.isNotEmpty).toList();
-  if (p.isEmpty) return '?';
+  final n = name.trim();
+  if (n.isEmpty) return '?';
+  if (n.startsWith('Guest ')) return 'G';
+  if (n.contains('@')) return n[0].toUpperCase();
+  final p = n.split(' ').where((s) => s.isNotEmpty).toList();
   return (p.first[0] + (p.length > 1 ? p.last[0] : '')).toUpperCase();
 }
 
@@ -215,44 +218,6 @@ class SectionCard extends StatelessWidget {
           ),
         ),
       );
-}
-
-/// Last 14 days. The count is above each bar. Today is dark.
-class DauChart extends StatelessWidget {
-  final List<int> values;
-  const DauChart({super.key, required this.values});
-
-  @override
-  Widget build(BuildContext context) {
-    final maxV = values.fold<int>(1, (a, b) => b > a ? b : a);
-    final today = DateTime.now();
-    const chartH = 110.0;
-    return SizedBox(
-      height: chartH + 40,
-      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        for (var i = 0; i < values.length; i++)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 1.5),
-              child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                Text('${values[i]}', style: body(10, i == values.length - 1 ? FontWeight.w800 : FontWeight.w500)),
-                const SizedBox(height: 2),
-                Container(
-                  height: (values[i] / maxV * chartH).clamp(3.0, chartH),
-                  decoration: BoxDecoration(
-                    color: i == values.length - 1 ? charcoal : barLime,
-                    border: Border.all(color: charcoal, width: 1),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text('${today.subtract(Duration(days: values.length - 1 - i)).day}', style: body(10, FontWeight.w500, muted)),
-              ]),
-            ),
-          ),
-      ]),
-    );
-  }
 }
 
 /// One step of the funnel. Tap to see who reached it.

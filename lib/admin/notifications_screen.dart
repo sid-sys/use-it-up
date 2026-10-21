@@ -102,7 +102,7 @@ class _Row extends StatelessWidget {
       decoration: BoxDecoration(color: cardWhite, borderRadius: BorderRadius.circular(16)),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
-            switch (e.kind) { 'test' => '🧪', 'weekly' => '📅', 'inactive' => '🛒', _ => '🔔' },
+            switch (e.kind) { 'test' => '🧪', 'weekly' => '📅', 'inactive' => '🛒', 'trial' => '⏰', _ => '🔔' },
             style: const TextStyle(fontSize: 22)),
         const SizedBox(width: 10),
         Expanded(
@@ -111,7 +111,7 @@ class _Row extends StatelessWidget {
             if (e.kind == 'test') Text(e.body, style: body(12.5, FontWeight.w400, Colors.black54)),
             const SizedBox(height: 2),
             Text(
-                '${switch (e.kind) { 'weekly' => 'Weekly overview', 'inactive' => 'Away nudge', 'reminder' => 'Item reminder', _ => 'Test' }}'
+                '${switch (e.kind) { 'weekly' => 'Weekly overview', 'inactive' => 'Away nudge', 'reminder' => 'Item reminder', 'trial' => 'Trial ending', _ => 'Test' }}'
                 ' · ${e.kind == 'test' ? 'at' : 'fires'} $when',
                 style: body(12, FontWeight.w500, Colors.black54)),
           ]),

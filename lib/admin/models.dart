@@ -52,21 +52,15 @@ class AdminFeedback {
   AdminFeedback({required this.id, required this.name, required this.kind, required this.text, required this.time, this.handled = false});
 }
 
-const _adjectives = ['Calm', 'Brave', 'Sunny', 'Quick', 'Gentle', 'Lucky', 'Merry', 'Bright'];
-const _animals = ['Otter', 'Panda', 'Falcon', 'Koala', 'Heron', 'Lynx', 'Fox', 'Robin'];
-
-/// A guest has no name. We make one up that stays the same for the same id.
-String guestName(String id) {
-  final n = id.codeUnits.fold<int>(7, (a, b) => (a * 31 + b) & 0x7fffffff);
-  return '${_adjectives[n % _adjectives.length]} ${_animals[(n ~/ 8) % _animals.length]}';
-}
-
+/// Where people say they heard about the app. Same keys as the onboarding question.
 const heardLabels = {
-  'friend': 'Friend or family',
-  'social': 'Instagram or TikTok',
+  'tiktok': 'TikTok',
+  'instagram': 'Instagram',
   'youtube': 'YouTube',
-  'store': 'App Store or Play Store search',
+  'facebook': 'Facebook',
+  'store': 'App Store or Play Store',
   'google': 'Google search',
+  'friend': 'A friend or family',
   'other': 'Somewhere else',
 };
 
@@ -135,7 +129,20 @@ class AdminUser {
     this.answers = const {},
   });
 
-  String get displayName => name.isNotEmpty ? name : guestName(id);
+  /// The real name. If there is none, the real email. If there is neither (a guest), "Guest" and the
+  /// first 6 characters of the account id. A name is NEVER made up.
+  String get displayName {
+    if (name.trim().isNotEmpty) return name.trim();
+    if (email.trim().isNotEmpty) return email.trim();
+    return 'Guest ${id.length > 6 ? id.substring(0, 6) : id}';
+  }
+
+  /// The line under the name: the real email, or what is missing.
+  String get subtitleLine {
+    if (name.trim().isNotEmpty) return email.trim().isEmpty ? 'No email' : email.trim();
+    if (email.trim().isNotEmpty) return 'No name given';
+    return 'No name, no email';
+  }
   bool get everSubscribed => subscribedAt != null;
   double get paidTotal => payments.fold(0.0, (a, p) => a + p.amount);
   String? get hiddenReason => AdminConfig.hiddenReason(this);
@@ -167,6 +174,13 @@ class AdminData {
   /// False until a server exists: then only this phone is shown and the screens say so.
   final bool serverConnected;
   const AdminData({required this.users, required this.devices, required this.feedback, required this.serverConnected});
+}
+
+/// One day on the "Active users" bars: who opened the app.
+class DayActive {
+  final DateTime day;
+  final List<AdminUser> users;
+  const DayActive(this.day, this.users);
 }
 
 /// One day on the installs chart.
@@ -204,7 +218,7 @@ class AdminStats {
   final double fixedCost30;
   final double profitBefore;
   final double profitAfter;
-  final List<int> dau14; // oldest first, last item is today
+  final List<DayActive> active30; // oldest first, last item is today
   final List<DayInstalls> installs30; // oldest first
   final List<FunnelRowData> funnel;
   final int biggestDropIndex; // the step where most people leave, or -1
@@ -227,7 +241,7 @@ class AdminStats {
     required this.fixedCost30,
     required this.profitBefore,
     required this.profitAfter,
-    required this.dau14,
+    required this.active30,
     required this.installs30,
     required this.funnel,
     required this.biggestDropIndex,
@@ -263,10 +277,10 @@ class AdminStats {
     final aiCost = ai30 * AppConfig.aiCostPerRequest;
     const fixed = AppConfig.fixedMonthlyCosts;
 
-    final dau = List<int>.filled(14, 0);
-    for (var i = 0; i < 14; i++) {
-      final d = today.subtract(Duration(days: 13 - i));
-      dau[i] = users.where((u) => u.events.any((e) => day(e.time) == d)).length;
+    final active = <DayActive>[];
+    for (var i = 29; i >= 0; i--) {
+      final d = today.subtract(Duration(days: i));
+      active.add(DayActive(d, users.where((u) => u.events.any((e) => day(e.time) == d)).toList()));
     }
 
     // Installs and uninstalls: one record per phone. Only phones whose owner is shown.
@@ -327,7 +341,7 @@ class AdminStats {
       fixedCost30: fixed,
       profitBefore: rev30 - aiCost - fixed,
       profitAfter: rev30 * (1 - AppConfig.storeCut) - aiCost - fixed,
-      dau14: dau,
+      active30: active,
       installs30: installs,
       funnel: funnel,
       biggestDropIndex: worst,
