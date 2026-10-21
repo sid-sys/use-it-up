@@ -116,13 +116,7 @@ class ProfileScreen extends StatelessWidget {
                 leading: const Icon(Icons.restore),
                 title: const Text('Restore purchases'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  await billing.restore();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(const SnackBar(content: Text('Checked for past purchases.')));
-                  }
-                },
+                onTap: () => restorePurchasesWithFeedback(context),
               ),
               ListTile(
                 leading: const Icon(Icons.privacy_tip_outlined),

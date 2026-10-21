@@ -182,9 +182,9 @@ class Billing extends ChangeNotifier {
 
   /// Call once at start. Does nothing in a MOCK build. Never throws.
   Future<void> initStore() async {
-    if (AppConfig.mock || !_storeSupported || _sub != null) return;
+    if (AppConfig.mock || !_storeSupported || _storeReady) return;
     try {
-      _sub = _iap.purchaseStream.listen(_onPurchases, onError: (_) {});
+      _sub ??= _iap.purchaseStream.listen(_onPurchases, onError: (_) {});
       _storeReady = await _iap.isAvailable();
       if (!_storeReady) return;
       final r = await _iap.queryProductDetails({
@@ -203,12 +203,19 @@ class Billing extends ChangeNotifier {
   /// Ask the store what this person owns. If it says nothing is active, Premium ends.
   Future<void> _refreshFromStore() async {
     try {
-      _seen.clear();
-      await _iap.restorePurchases();
-      await Future<void>.delayed(const Duration(seconds: 4));
+      await _checkStore();
     } catch (e) {
-      debugPrint('Could not check purchases: $e');
-      return; // keep what we had: we could not ask
+      debugPrint('Could not check purchases: $e'); // keep what we had: we could not ask
+    }
+  }
+
+  /// Throws if the store does not answer in time.
+  Future<void> _checkStore() async {
+    _seen.clear();
+    await _iap.restorePurchases().timeout(const Duration(seconds: 15));
+    // Purchases arrive on the stream. Wait up to 5 seconds, and stop as soon as one arrives.
+    for (var i = 0; i < 25 && _seen.isEmpty; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 200));
     }
     if (_seen.isEmpty && _entitled) {
       _entitled = false;
@@ -321,10 +328,23 @@ class Billing extends ChangeNotifier {
   }
 
   /// Check past purchases again. Used by "Restore purchases".
-  Future<void> restore() async {
-    if (AppConfig.mock || !_storeSupported) return load();
-    if (!_storeReady) await initStore();
-    if (_storeReady) await _refreshFromStore();
+  /// Always answers within about 40 seconds, with a message to show the person.
+  Future<String> restore() async {
+    if (AppConfig.mock) {
+      await load();
+      return isPremium ? 'Premium is active on this phone.' : 'No past purchases found.';
+    }
+    if (!_storeSupported) return 'Purchases work on iPhone and Android only.';
+    try {
+      if (!_storeReady) await initStore().timeout(const Duration(seconds: 10));
+      if (!_storeReady) return 'The store is not available right now. Please try again later.';
+      await _checkStore().timeout(const Duration(seconds: 25));
+    } on TimeoutException {
+      return 'The store did not answer. Check your internet and try again.';
+    } catch (_) {
+      return 'Could not check your purchases. Please try again.';
+    }
+    return _entitled ? 'Premium restored. Welcome back!' : 'No active purchase found for this store account.';
   }
 
   Future<void> reset() async {

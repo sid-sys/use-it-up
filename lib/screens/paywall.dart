@@ -167,13 +167,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   TextButton(onPressed: _busy ? null : _close, child: Text('Maybe later', style: body(15.5, FontWeight.w700))),
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     TextButton(
-                        onPressed: () async {
-                          await billing.restore();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(const SnackBar(content: Text('Checked for past purchases.')));
-                          }
-                        },
+                        onPressed: _busy ? null : () => restorePurchasesWithFeedback(context),
                         style: TextButton.styleFrom(visualDensity: VisualDensity.compact, textStyle: body(13)),
                         child: const Text('Restore purchases')),
                     const Text('·'),
@@ -189,6 +183,35 @@ class _PaywallScreenState extends State<PaywallScreen> {
       ),
     );
   }
+}
+
+/// "Restore purchases": shows a progress box, then tells the person what happened.
+/// It can never hang: the billing code gives up after a short time and says so.
+Future<void> restorePurchasesWithFeedback(BuildContext context) async {
+  final nav = Navigator.of(context, rootNavigator: true);
+  final messenger = ScaffoldMessenger.of(context);
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Row(children: [
+          SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5)),
+          SizedBox(width: 18),
+          Expanded(child: Text('Checking your purchases...')),
+        ]),
+      ),
+    ),
+  );
+  String message;
+  try {
+    message = await billing.restore();
+  } catch (_) {
+    message = 'Could not check your purchases. Please try again.';
+  }
+  nav.pop();
+  messenger.showSnackBar(SnackBar(content: Text(message), persist: false));
 }
 
 class _Feature extends StatelessWidget {

@@ -54,6 +54,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Free plan holds 20 foods'), findsOneWidget);
     expect(find.text('Start free trial'), findsOneWidget);
+
+    // Restore purchases shows progress and then always says what happened
+    await tester.tap(find.text('Restore purchases'));
+    await tester.pumpAndSettle();
+    expect(find.text('No past purchases found.'), findsOneWidget);
+    expect(find.text('Checking your purchases...'), findsNothing);
+
     await tester.tap(find.text('Maybe later'));
     await tester.pumpAndSettle();
     expect(find.text('Add food'), findsOneWidget);

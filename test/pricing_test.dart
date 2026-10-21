@@ -13,6 +13,14 @@ void main() {
     expect(AppConfig.moneyShort(2893.4), r'$2893');
   });
 
+  test('restore always answers with a message (demo build)', () async {
+    SharedPreferences.setMockInitialValues({});
+    final b = Billing();
+    expect(await b.restore(), 'No past purchases found.');
+    await b.subscribe(PlanKind.monthly);
+    expect(await b.restore(), 'Premium is active on this phone.');
+  });
+
   test('lifetime is premium with no trial', () async {
     SharedPreferences.setMockInitialValues({});
     final b = Billing();
