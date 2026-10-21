@@ -19,7 +19,7 @@ void main() {
     addTearDown(tester.view.reset);
     // Saved state: the user was on question 2.
     await tester.runAsync(loadFonts);
-    SharedPreferences.setMockInitialValues({'onb_step': 3, 'onb_problem': 'buy_more'});
+    SharedPreferences.setMockInitialValues({'onb_step': 2, 'onb_problem': 'buy_more'});
 
     await tester.runAsync(() => app.main());
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 1800))); // splash timer

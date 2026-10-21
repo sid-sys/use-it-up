@@ -43,21 +43,15 @@ void main() {
     expect(find.text('Free to start · Takes less than a minute'), findsOneWidget);
     await tapText(tester, 'Get started');
 
-    // 2. Sign up (mock build: Google makes a demo account)
-    expect(find.text('Continue with Google'), findsOneWidget);
-    expect(find.text('Continue with email'), findsOneWidget);
-    expect(find.text('Continue without an account'), findsOneWidget);
-    await tapText(tester, 'Continue with Google');
-    expect(Auth.signedIn, isTrue);
-    expect(Auth.displayName, 'Demo Google'); // name comes from the email
-
     // 3. Question 1: pick, continue
     expect(find.textContaining('GETS FORGOTTEN'), findsOneWidget);
     await tapText(tester, 'Leftovers get forgotten');
     await tapText(tester, 'Continue');
 
-    // Question 2: Continue with nothing chosen still moves on
+    // Question 2: Continue stays off until one answer is chosen
     expect(find.textContaining('SHOPPING FOR'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Continue')).onPressed, isNull);
+    await tapText(tester, '2 people');
     await tapText(tester, 'Continue');
 
     // "Waste less food with Use It Up vs on your own"
@@ -85,6 +79,14 @@ void main() {
     expect(find.textContaining('GIVE US A'), findsOneWidget);
     await tapText(tester, 'Not now');
 
+    // Sign up comes after the questions (mock build: Google makes a demo account)
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Continue with email'), findsOneWidget);
+    expect(find.text('Continue without an account'), findsOneWidget);
+    await tapText(tester, 'Continue with Google');
+    expect(Auth.signedIn, isTrue);
+    expect(Auth.displayName, 'Demo Google'); // name comes from the email
+
     // 5. Soft paywall, dismissible
     expect(find.text('Start 7-day free trial'), findsOneWidget);
     expect(find.text('Maybe later'), findsOneWidget);
@@ -96,7 +98,7 @@ void main() {
     expect(find.text('Add food'), findsOneWidget);
     expect(app.store.onboarded, isTrue);
     expect(app.store.problem, 'leftovers');
-    expect(app.store.household, isNull);
+    expect(app.store.household, 'two');
     expect(app.store.heardFrom, 'youtube');
     expect(app.store.remindWhen, 'one');
     expect(app.store.prefs.oneDay, isTrue);

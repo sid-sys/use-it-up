@@ -20,7 +20,8 @@ class OnboardingFlow extends StatefulWidget {
   State<OnboardingFlow> createState() => _OnboardingFlowState();
 }
 
-enum _Step { welcome, signup, q1, q2, compare, q3, q4, notify, review, paywall }
+// Splash > welcome and questions > sign up > paywall > Home.
+enum _Step { welcome, q1, q2, compare, q3, q4, notify, review, signup, paywall }
 
 /// The screens that share the progress bar at the top.
 const _barSteps = [_Step.q1, _Step.q2, _Step.compare, _Step.q3, _Step.q4, _Step.review];
@@ -62,11 +63,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       case _Step.welcome:
         return _Welcome(onStart: () {
           Analytics.instance.log(Ev.onboardingStarted);
-          // Someone who already signed in, or already chose guest, is not asked again.
-          _go(Auth.instance.provider != null ? _Step.q1 : _Step.signup);
+          _go(_Step.q1);
         });
       case _Step.signup:
-        return _SignUp(onBack: _back, onDone: () => _go(_Step.q1));
+        return _SignUp(onBack: _back, onDone: () => _go(_Step.paywall));
       case _Step.q1:
         return _Question(
           progress: _progress(_Step.q1),
@@ -81,7 +81,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ],
           initial: store.problem,
           button: 'Continue',
-          footer: 'Optional. You can continue without choosing.',
+          footer: 'Pick one to continue.',
           onBack: _back,
           onNext: (v) {
             store.saveOnboarding(problem: v);
@@ -102,7 +102,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ],
           initial: store.household,
           button: 'Continue',
-          footer: 'Optional. You can continue without choosing.',
+          footer: 'Pick one to continue.',
           onBack: _back,
           onNext: (v) {
             store.saveOnboarding(household: v);
@@ -124,7 +124,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ],
           initial: store.remindWhen,
           button: 'Continue',
-          footer: 'You can change this any time in Profile.',
+          footer: 'Pick one. You can change this any time in Profile.',
           onBack: _back,
           onNext: (v) async {
             await store.saveOnboarding(remindWhen: v);
@@ -153,7 +153,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ],
           initial: store.heardFrom,
           button: 'Continue',
-          footer: 'Optional. You can continue without choosing.',
+          footer: 'Pick one to continue.',
           onBack: _back,
           onNext: (v) async {
             await store.saveOnboarding(heardFrom: v);
@@ -169,7 +169,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       case _Step.notify:
         return _NotifySetup(onDone: () => _go(_Step.review));
       case _Step.review:
-        return _ReviewStep(progress: _progress(_Step.review), onBack: _back, onDone: () => _go(_Step.paywall));
+        return _ReviewStep(progress: _progress(_Step.review), onBack: _back, onDone: () => _go(_Step.signup));
       case _Step.paywall:
         return PaywallScreen(fromOnboarding: true, onClose: () => store.finishOnboarding());
     }
@@ -500,7 +500,7 @@ class _QuestionState extends State<_Question> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _TopBar(progress: widget.progress, onBack: widget.onBack, onSkip: widget.onSkip),
+        _TopBar(progress: widget.progress, onBack: widget.onBack, onSkip: null),
         const SizedBox(height: 22),
         Text(widget.title, style: display(34)),
         const SizedBox(height: 8),
@@ -516,10 +516,10 @@ class _QuestionState extends State<_Question> {
           ]),
         ),
         const SizedBox(height: 8),
-        // Always active: with no choice made, Continue simply moves on.
+        // One answer must be chosen before Continue works.
         FilledButton(
           style: limeButton(),
-          onPressed: () => _sel == null ? widget.onSkip() : widget.onNext(_sel!),
+          onPressed: _sel == null ? null : () => widget.onNext(_sel!),
           child: Text(widget.button),
         ),
         const SizedBox(height: 8),
