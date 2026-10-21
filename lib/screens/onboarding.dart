@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../analytics.dart';
 import '../auth.dart';
 import '../config.dart';
 import '../main.dart';
@@ -17,7 +18,7 @@ class OnboardingFlow extends StatefulWidget {
   State<OnboardingFlow> createState() => _OnboardingFlowState();
 }
 
-enum _Step { welcome, signup, q1, q2, q3, notify, paywall }
+enum _Step { welcome, signup, q1, q2, q3, q4, notify, paywall }
 
 class _OnboardingFlowState extends State<OnboardingFlow> {
   late _Step _step = _Step.values[store.onbStep.clamp(0, _Step.values.length - 1)];
@@ -52,7 +53,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   Widget _screen() {
     switch (_step) {
       case _Step.welcome:
-        return _Welcome(onStart: () => _go(_Step.signup));
+        return _Welcome(onStart: () {
+          Analytics.instance.log(Ev.onboardingStarted);
+          _go(_Step.signup);
+        });
       case _Step.signup:
         return _SignUp(onBack: _back, onDone: () => _go(_Step.q1));
       case _Step.q1:
@@ -112,16 +116,45 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             _Opt('both', 'Both', 'An early heads-up and a final reminder'),
           ],
           initial: store.remindWhen,
-          button: 'Finish setup',
+          button: 'Continue',
           footer: 'You can change this any time in Profile.',
           onBack: _back,
           onNext: (v) async {
             await store.saveOnboarding(remindWhen: v);
             await store.applyRemindChoice();
-            _go(_Step.notify);
+            _go(_Step.q4);
           },
           onSkip: () async {
             await store.applyRemindChoice();
+            _go(_Step.q4);
+          },
+        );
+      case _Step.q4:
+        return _Question(
+          kicker: 'ONE LAST THING',
+          index: 4,
+          title: 'HOW DID YOU\nHEAR ABOUT US?',
+          subtitle: 'This helps us reach more people who waste less food.',
+          options: const [
+            _Opt('friend', 'A friend or family'),
+            _Opt('social', 'Instagram or TikTok'),
+            _Opt('youtube', 'YouTube'),
+            _Opt('store', 'App Store or Play Store search'),
+            _Opt('google', 'Google search'),
+            _Opt('other', 'Somewhere else'),
+          ],
+          initial: store.heardFrom,
+          button: 'Finish setup',
+          footer: 'Optional. You can skip this.',
+          onBack: _back,
+          onNext: (v) async {
+            await store.saveOnboarding(heardFrom: v);
+            Analytics.instance.log(Ev.heardFrom, v);
+            Analytics.instance.log(Ev.answered);
+            _go(_Step.notify);
+          },
+          onSkip: () {
+            Analytics.instance.log(Ev.answered);
             _go(_Step.notify);
           },
         );
@@ -204,6 +237,7 @@ class _SignUpState extends State<_SignUp> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (err == null) {
+      Analytics.instance.log(Ev.signedUp, p.name);
       widget.onDone();
     } else {
       setState(() => _error = err);
@@ -384,7 +418,7 @@ class _Opt {
 
 class _Question extends StatefulWidget {
   final String kicker;
-  final int index; // 1..3
+  final int index; // 1..4
   final String title;
   final String subtitle;
   final List<_Opt> options;
@@ -429,11 +463,11 @@ class _QuestionState extends State<_Question> {
         Text(widget.kicker, style: body(12, FontWeight.w800, Colors.black54).copyWith(letterSpacing: 1.2)),
         const SizedBox(height: 10),
         Row(children: [
-          for (var i = 1; i <= 3; i++)
+          for (var i = 1; i <= 4; i++)
             Expanded(
               child: Container(
                 height: 6,
-                margin: EdgeInsets.only(right: i < 3 ? 6 : 0),
+                margin: EdgeInsets.only(right: i < 4 ? 6 : 0),
                 decoration: BoxDecoration(
                   color: i <= widget.index ? charcoal : const Color(0xFFD9D8CC),
                   borderRadius: BorderRadius.circular(4),
@@ -441,7 +475,7 @@ class _QuestionState extends State<_Question> {
               ),
             ),
           const SizedBox(width: 12),
-          Text('${widget.index} of 3', style: body(12.5, FontWeight.w700)),
+          Text('${widget.index} of 4', style: body(12.5, FontWeight.w700)),
         ]),
         const SizedBox(height: 22),
         Text(widget.title, style: display(34)),
@@ -532,6 +566,7 @@ class _NotifySetupState extends State<_NotifySetup> {
     await store.saveOnboarding(notifAsked: true);
     if (!mounted) return;
     setState(() => _busy = false);
+    if (ok) Analytics.instance.log(Ev.notifAllowed);
     if (ok || !Notifier.supported) {
       widget.onDone();
     } else {

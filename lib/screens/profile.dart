@@ -10,6 +10,7 @@ import '../main.dart';
 import '../notifications.dart';
 import '../theme.dart';
 import '../toast.dart';
+import 'feedback_sheet.dart';
 import 'onboarding.dart' show SignInScreen;
 import 'paywall.dart';
 
@@ -139,6 +140,12 @@ class ProfileScreen extends StatelessWidget {
                 subtitle: const Text(AppConfig.contactEmail),
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () => openUrl(context, 'mailto:${AppConfig.contactEmail}'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.feedback_outlined),
+                title: const Text('Send feedback or report a bug'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => showFeedbackSheet(context),
               ),
               if (Auth.signedIn)
                 ListTile(

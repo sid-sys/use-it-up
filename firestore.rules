@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// NOT DEPLOYED YET. The app does not use Firestore today.
+// Deploy with:  firebase deploy --only firestore:rules --project use-it-up-app
+//
+// The admin panel is READ ONLY. Only the owner may read the data, and the SERVER enforces it here.
+// Hiding the "Admin panel" button in the app is not security.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'sidharthbabu9@gmail.com';
+    }
+
+    // One record per phone: install id, owner, install time, push address, last seen, uninstalled day.
+    // Written ONLY by a Cloud Function (the admin SDK ignores these rules). The app can never write
+    // here, so nobody can fill the installs chart with made-up phones.
+    match /devices/{installId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Profile, plan and payments. Money numbers come from the store's server check (a Cloud Function),
+    // never from what the phone says, so the app may not write them.
+    match /users/{uid} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow write: if false;
+
+      // Events such as "saw the paywall". A person may add their own events, nobody may change them.
+      match /events/{eventId} {
+        allow read: if isAdmin();
+        allow create: if request.auth != null && request.auth.uid == uid;
+        allow update, delete: if false;
+      }
+    }
+
+    // Feedback and bug reports. Anyone signed in (a guest counts) may send one. Only the owner reads.
+    // The only change the owner may make is the "handled" tick.
+    match /feedback/{id} {
+      allow create: if request.auth != null;
+      allow read: if isAdmin();
+      allow update: if isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['handled']);
+      allow delete: if false;
+    }
+  }
+}

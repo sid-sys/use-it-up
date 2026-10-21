@@ -5,6 +5,7 @@ import 'analytics.dart';
 import 'auth.dart';
 import 'billing.dart';
 import 'config.dart';
+import 'feedback_log.dart';
 import 'firebase_options.dart';
 import 'notification_log.dart';
 import 'notifications.dart';
@@ -32,6 +33,7 @@ Future<void> main() async {
   await Auth.instance.load();
   await Analytics.instance.load();
   await NotificationLog.instance.load();
+  await FeedbackLog.instance.load();
   await Notifier.init();
   Analytics.instance.log(Ev.opened);
   runApp(const UseItUpApp());

@@ -39,7 +39,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
   }
 
   /// Nothing is charged until the store confirms the purchase.
-  /// Live build: call the store purchase sheet here (RevenueCat) and only then mark Premium.
+  /// A real build opens the App Store or Google Play sheet here, and marks Premium only after it confirms.
   Future<void> _buy() async {
     setState(() {
       _busy = true;
@@ -56,8 +56,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
       }
       _close();
     } on PurchaseCancelled {
+      Analytics.instance.log(Ev.payFailed, 'cancelled');
       if (mounted) setState(() => _busy = false); // closed the store sheet: not an error
     } catch (e) {
+      final text = e.toString();
+      Analytics.instance.log(Ev.payFailed, text.contains('not available') || text.contains('Purchases work') ? 'store_unavailable' : 'failed');
       if (mounted) {
         setState(() {
           _busy = false;

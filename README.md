@@ -31,23 +31,49 @@ flutter build appbundle --release --dart-define=MOCK=false
 | `lib/analytics.dart` | `Analytics.log(type, detail)`. Events are stored on the device. |
 | `lib/notifications.dart`, `lib/notification_log.dart` | Local reminders and the log shown in the admin panel. |
 | `lib/scan/` | Photo reading (Google ML Kit, on device) and the date parser. |
-| `lib/admin/` | Admin panel: models, repository (mock and local), dashboard, users, notifications. |
+| `lib/admin/` | Admin panel: rules (`admin_config.dart`), models, repository (mock and local), dashboard, users, feedback. |
+| `firestore.rules` | Server rules for the admin data. Not deployed yet. |
 | `docs/` | Public pages for GitHub Pages: privacy, terms, data deletion. |
 
-## Admin panel security (read this)
+## Admin panel
 
-Hiding the "Admin panel" button in the app is **not security**. Anyone can unpack an app.
+Open it from Profile > Admin panel. In a real build only `AppConfig.adminEmail` sees the button.
 
-Today the panel shows made-up data (MOCK) or only this phone's own events, so nothing private is exposed.
-When real user data is added (Firestore, Cloud Functions or an API), the **server must also check that the
-caller is the admin email** (`sidharthbabu9@gmail.com`):
+**What is real today.** The panel reads data only through `AdminRepository` (`lib/admin/repository.dart`).
+- A demo build (`MOCK`) shows about 60 made-up accounts: 50 real-looking people and 10 that "Real users only" must hide.
+- A real build has no server yet, so it shows only this phone, as one user, and says so. Nothing is made up.
 
-- Firestore rules: allow reading all users only when `request.auth.token.email == 'sidharthbabu9@gmail.com'`
-  and `request.auth.token.email_verified == true`.
-- Cloud Functions or an API: reject the call unless the verified ID token has that email.
+**Real users only.** The switch is on by default. The rules that decide who is hidden are all in
+`lib/admin/admin_config.dart` (your email, the store review login, robot email endings, the 25 second rule). Edit that file,
+not a screen. Tap "Hiding N accounts" on the dashboard to see each hidden account and the reason.
 
-Screens read data only through `AdminRepository` (`lib/admin/repository.dart`), so a real
-`FirestoreAdminRepository` can replace the mock without changing any screen.
+**Screens.** Dashboard, All users, One user (journey, what they told us, activity), Feedback, Hidden accounts, and a day screen
+for installs and uninstalls.
+
+**Events the app records for the panel** (`lib/analytics.dart`): onboarding_started, signed_up (apple, google, email or guest),
+heard_from, onboarding_answers, notif_allowed, payment_failed (cancelled, failed, store_unavailable), feedback_sent.
+The onboarding has a fourth question, "How did you hear about us?", for the "Where people heard about us" block.
+
+### What is NOT built yet (needs a server)
+
+These need Firebase on the Blaze (pay as you go) plan, with Cloud Functions:
+
+1. **Devices.** The app reports itself once a day to a function that writes one record per phone to `devices`:
+   a random install id made on first run, the install time Android reports (`PackageInfo.firstInstallTime`), the owner
+   account, the push (FCM) token and last seen. Only the function may write it (see `firestore.rules`).
+2. **Uninstalls.** A scheduled function (for example 04:00) sends a dry-run FCM message to every token. Only when Google says
+   `UNREGISTERED` or `INVALID_ARGUMENT` is the phone marked uninstalled with that day. If the phone reports in again, remove the mark.
+   This works on Android. On iPhone, Apple does not tell apps about deletes.
+3. **Money.** A function verifies purchases with the Google Play Developer API and the App Store Server API, and writes the
+   payments. Purchases the store marks as test (license testers, sandbox) set `testPurchase` so they are hidden.
+4. **Events and users** written to `users/{uid}/events` and read by a `FirestoreAdminRepository`.
+5. **Rules.** Deploy `firestore.rules`. It lets only `sidharthbabu9@gmail.com` (verified) read, and nobody write money or devices.
+
+## Security (read this)
+
+Hiding the "Admin panel" button in the app is **not security**. Anyone can unpack an app. When real user data is added the
+**server must check the caller**: Firestore rules (`firestore.rules`) and, for any Cloud Function or API, reject the call unless the
+verified ID token has the admin email and `email_verified`. The panel is read-only.
 
 ## Public pages (GitHub Pages)
 

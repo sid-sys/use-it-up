@@ -12,6 +12,13 @@ class Ev {
   static const paywallView = 'paywall_view';
   static const paymentAttempt = 'payment_attempt';
   static const subscribed = 'subscribed';
+  static const onboardingStarted = 'onboarding_started'; // tapped Get started
+  static const signedUp = 'signed_up'; // detail: apple, google, email or guest
+  static const answered = 'onboarding_answers'; // finished the questions
+  static const notifAllowed = 'notif_allowed'; // allowed reminders
+  static const heardFrom = 'heard_from'; // detail: where they heard about the app
+  static const payFailed = 'payment_failed'; // detail: cancelled, failed or store_unavailable
+  static const feedbackSent = 'feedback_sent';
 }
 
 class LoggedEvent {

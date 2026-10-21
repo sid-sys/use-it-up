@@ -1,5 +1,6 @@
 import '../analytics.dart';
 import '../config.dart';
+import 'admin_config.dart';
 
 enum AdminPlan { none, monthly, yearly, lifetime }
 
@@ -16,22 +17,101 @@ class AdminPayment {
   const AdminPayment(this.time, this.amount);
 }
 
-class AdminUser {
+/// A payment that did not happen. [reason] is cancelled, failed or store_unavailable.
+class AdminPayFailure {
+  final DateTime time;
+  final String reason;
+  final String detail;
+  const AdminPayFailure(this.time, this.reason, this.detail);
+}
+
+/// One record per phone, however many accounts use it. Written by the server only.
+class AdminDevice {
+  final String installId;
+  final String ownerId; // the account that last logged in on this phone
+  final DateTime installedAt; // the install time Android itself reports
+  final DateTime lastSeen;
+  final DateTime? uninstalledAt; // set only when Google says the push address is gone
+  const AdminDevice({
+    required this.installId,
+    required this.ownerId,
+    required this.installedAt,
+    required this.lastSeen,
+    this.uninstalledAt,
+  });
+  bool get uninstalled => uninstalledAt != null;
+}
+
+class AdminFeedback {
   final String id;
   final String name;
-  final String email;
+  final String kind; // Feedback or Bug
+  final String text;
+  final DateTime time;
+  bool handled;
+  AdminFeedback({required this.id, required this.name, required this.kind, required this.text, required this.time, this.handled = false});
+}
+
+const _adjectives = ['Calm', 'Brave', 'Sunny', 'Quick', 'Gentle', 'Lucky', 'Merry', 'Bright'];
+const _animals = ['Otter', 'Panda', 'Falcon', 'Koala', 'Heron', 'Lynx', 'Fox', 'Robin'];
+
+/// A guest has no name. We make one up that stays the same for the same id.
+String guestName(String id) {
+  final n = id.codeUnits.fold<int>(7, (a, b) => (a * 31 + b) & 0x7fffffff);
+  return '${_adjectives[n % _adjectives.length]} ${_animals[(n ~/ 8) % _animals.length]}';
+}
+
+const heardLabels = {
+  'friend': 'Friend or family',
+  'social': 'Instagram or TikTok',
+  'youtube': 'YouTube',
+  'store': 'App Store or Play Store search',
+  'google': 'Google search',
+  'other': 'Somewhere else',
+};
+
+/// The steps people go through, in order, for THIS app. Each is an event the app records.
+/// "Installed" is every account's phone, so it has no event.
+const funnelSteps = <(String label, String? event)>[
+  ('Installed the app', null),
+  ('Opened the app', Ev.opened),
+  ('Started onboarding', Ev.onboardingStarted),
+  ('Signed up or chose guest', Ev.signedUp),
+  ('Answered the questions', Ev.answered),
+  ('Allowed reminders', Ev.notifAllowed),
+  ('Added the first food', Ev.foodAdded),
+  ('Saw the paywall', Ev.paywallView),
+  ('Tried to pay', Ev.paymentAttempt),
+  ('Subscribed', Ev.subscribed),
+];
+
+class JourneyStep {
+  final String label;
+  final DateTime? time;
+  const JourneyStep(this.label, this.time);
+  bool get done => time != null;
+}
+
+class AdminUser {
+  final String id;
+  final String name; // empty for a guest
+  final String email; // empty for a guest
   final String country;
   final DateTime joinedAt;
   final DateTime lastSeen;
-  final bool onboardingComplete;
-  final bool addedFirstFood; // key step of this app
+  final bool isGuest;
   final int paywallViews;
   final int paymentAttempts;
   final AdminPlan plan; // none = free or churned
   final DateTime? subscribedAt;
   final List<AdminPayment> payments;
+  final List<AdminPayFailure> failures;
   final List<AdminEvent> events; // newest first
   final int streak;
+  final bool testPurchase; // the store says this was a license-tester purchase
+  final int? onboardingSeconds; // how long the welcome tour took
+  final String? heardFrom; // key in [heardLabels]
+  final Map<String, String> answers; // what they told us in onboarding
 
   const AdminUser({
     required this.id,
@@ -40,8 +120,7 @@ class AdminUser {
     required this.country,
     required this.joinedAt,
     required this.lastSeen,
-    required this.onboardingComplete,
-    required this.addedFirstFood,
+    required this.isGuest,
     required this.paywallViews,
     required this.paymentAttempts,
     required this.plan,
@@ -49,43 +128,98 @@ class AdminUser {
     required this.payments,
     required this.events,
     required this.streak,
+    this.failures = const [],
+    this.testPurchase = false,
+    this.onboardingSeconds,
+    this.heardFrom,
+    this.answers = const {},
   });
 
+  String get displayName => name.isNotEmpty ? name : guestName(id);
   bool get everSubscribed => subscribedAt != null;
-  bool get reachedPaywall => paywallViews > 0;
-  bool get triedToPay => paymentAttempts > 0;
   double get paidTotal => payments.fold(0.0, (a, p) => a + p.amount);
+  String? get hiddenReason => AdminConfig.hiddenReason(this);
 
   bool activeOn(DateTime day) => lastSeen.year == day.year && lastSeen.month == day.month && lastSeen.day == day.day;
+
+  /// The first time this event happened, or null.
+  DateTime? firstOf(String type) {
+    DateTime? t;
+    for (final e in events) {
+      if (e.type == type && (t == null || e.time.isBefore(t))) t = e.time;
+    }
+    return t;
+  }
+
+  bool paidWithin(DateTime since) => payments.any((p) => p.time.isAfter(since));
+
+  List<JourneyStep> get journey => [
+        for (final (label, event) in funnelSteps) JourneyStep(label, event == null ? joinedAt : firstOf(event)),
+      ];
 }
 
-/// Computed from the users list. Costs come from [AppConfig].
+/// Everything the admin screens need. The repository fills it, the screens never ask a database.
+class AdminData {
+  final List<AdminUser> users;
+  final List<AdminDevice> devices;
+  final List<AdminFeedback> feedback;
+
+  /// False until a server exists: then only this phone is shown and the screens say so.
+  final bool serverConnected;
+  const AdminData({required this.users, required this.devices, required this.feedback, required this.serverConnected});
+}
+
+/// One day on the installs chart.
+class DayInstalls {
+  final DateTime day;
+  final List<AdminUser> installed;
+  final List<AdminUser> uninstalled;
+  const DayInstalls(this.day, this.installed, this.uninstalled);
+  int get net => installed.length - uninstalled.length;
+  String get netWords => net > 0 ? 'Net gain +$net' : (net < 0 ? 'Net loss $net' : 'No change');
+}
+
+class FunnelRowData {
+  final String label;
+  final int count;
+  final List<AdminUser> users;
+  const FunnelRowData(this.label, this.count, this.users);
+}
+
+/// Numbers for the dashboard. Costs come from [AppConfig].
+/// Built from the users that are SHOWN, so the "Real users only" switch changes every number.
 class AdminStats {
-  final int totalUsers;
+  final List<AdminUser> users; // the ones shown
   final int newThisWeek;
-  final int subscribed; // plan is not none
+  final List<AdminUser> subscribed;
   final int payingNow; // monthly + yearly
   final int lifetime;
-  final int activeToday;
+  final List<AdminUser> activeToday;
   final int activeWeek;
+  final List<AdminUser> paidLast30;
   final double revenueTotal;
   final double revenue30;
   final int aiRequests30;
   final double aiCost30;
   final double fixedCost30;
-  final double profitBefore; // revenue minus costs, before store cut
-  final double profitAfter; // after the store cut
+  final double profitBefore;
+  final double profitAfter;
   final List<int> dau14; // oldest first, last item is today
-  final List<int> funnel; // joined, onboarding, first food, paywall, tried to pay, subscribed
+  final List<DayInstalls> installs30; // oldest first
+  final List<FunnelRowData> funnel;
+  final int biggestDropIndex; // the step where most people leave, or -1
+  final Map<String, List<AdminUser>> payProblems; // cancelled, failed, store_unavailable
+  final Map<String, List<AdminUser>> sources; // key in heardLabels, or 'none'
 
   AdminStats._({
-    required this.totalUsers,
+    required this.users,
     required this.newThisWeek,
     required this.subscribed,
     required this.payingNow,
     required this.lifetime,
     required this.activeToday,
     required this.activeWeek,
+    required this.paidLast30,
     required this.revenueTotal,
     required this.revenue30,
     required this.aiRequests30,
@@ -94,16 +228,29 @@ class AdminStats {
     required this.profitBefore,
     required this.profitAfter,
     required this.dau14,
+    required this.installs30,
     required this.funnel,
+    required this.biggestDropIndex,
+    required this.payProblems,
+    required this.sources,
   });
 
+  int get totalUsers => users.length;
   double get costs30 => aiCost30 + fixedCost30;
-  double get subscribedPct => totalUsers == 0 ? 0 : subscribed * 100 / totalUsers;
+  double get subscribedPct => users.isEmpty ? 0 : subscribed.length * 100 / users.length;
 
-  factory AdminStats.from(List<AdminUser> users, DateTime now) {
+  static const payProblemLabels = {
+    'cancelled': 'Closed the payment window',
+    'failed': 'Payment failed',
+    'store_unavailable': 'Store not available',
+  };
+
+  factory AdminStats.from(List<AdminUser> users, List<AdminDevice> devices, DateTime now) {
     final today = DateTime(now.year, now.month, now.day);
     final weekAgo = now.subtract(const Duration(days: 7));
     final monthAgo = now.subtract(const Duration(days: 30));
+    final byId = {for (final u in users) u.id: u};
+    DateTime day(DateTime t) => DateTime(t.year, t.month, t.day);
 
     var revTotal = 0.0, rev30 = 0.0, ai30 = 0;
     for (final u in users) {
@@ -119,17 +266,60 @@ class AdminStats {
     final dau = List<int>.filled(14, 0);
     for (var i = 0; i < 14; i++) {
       final d = today.subtract(Duration(days: 13 - i));
-      dau[i] = users.where((u) => u.events.any((e) => DateTime(e.time.year, e.time.month, e.time.day) == d)).length;
+      dau[i] = users.where((u) => u.events.any((e) => day(e.time) == d)).length;
+    }
+
+    // Installs and uninstalls: one record per phone. Only phones whose owner is shown.
+    final installs = <DayInstalls>[];
+    for (var i = 29; i >= 0; i--) {
+      final d = today.subtract(Duration(days: i));
+      final inst = <AdminUser>[];
+      final uninst = <AdminUser>[];
+      for (final dev in devices) {
+        final owner = byId[dev.ownerId];
+        if (owner == null) continue;
+        if (day(dev.installedAt) == d) inst.add(owner);
+        if (dev.uninstalledAt != null && day(dev.uninstalledAt!) == d) uninst.add(owner);
+      }
+      installs.add(DayInstalls(d, inst, uninst));
+    }
+
+    final funnel = <FunnelRowData>[];
+    for (final (label, event) in funnelSteps) {
+      final list = event == null ? List<AdminUser>.of(users) : users.where((u) => u.firstOf(event) != null).toList();
+      funnel.add(FunnelRowData(label, list.length, list));
+    }
+    var worst = -1;
+    var worstLoss = 0;
+    for (var i = 1; i < funnel.length; i++) {
+      final loss = funnel[i - 1].count - funnel[i].count;
+      if (loss > worstLoss) {
+        worstLoss = loss;
+        worst = i;
+      }
+    }
+
+    final problems = <String, List<AdminUser>>{for (final k in payProblemLabels.keys) k: []};
+    for (final u in users) {
+      for (final reason in u.failures.map((f) => f.reason).toSet()) {
+        problems[reason]?.add(u);
+      }
+    }
+
+    final sources = <String, List<AdminUser>>{for (final k in heardLabels.keys) k: [], 'none': []};
+    for (final u in users) {
+      sources[heardLabels.containsKey(u.heardFrom) ? u.heardFrom! : 'none']!.add(u);
     }
 
     return AdminStats._(
-      totalUsers: users.length,
+      users: users,
       newThisWeek: users.where((u) => u.joinedAt.isAfter(weekAgo)).length,
-      subscribed: users.where((u) => u.plan != AdminPlan.none).length,
+      subscribed: users.where((u) => u.plan != AdminPlan.none).toList(),
       payingNow: users.where((u) => u.plan == AdminPlan.monthly || u.plan == AdminPlan.yearly).length,
       lifetime: users.where((u) => u.plan == AdminPlan.lifetime).length,
-      activeToday: users.where((u) => u.activeOn(today)).length,
+      activeToday: users.where((u) => u.activeOn(today)).toList(),
       activeWeek: users.where((u) => u.lastSeen.isAfter(weekAgo)).length,
+      paidLast30: users.where((u) => u.paidWithin(monthAgo)).toList(),
       revenueTotal: revTotal,
       revenue30: rev30,
       aiRequests30: ai30,
@@ -138,14 +328,11 @@ class AdminStats {
       profitBefore: rev30 - aiCost - fixed,
       profitAfter: rev30 * (1 - AppConfig.storeCut) - aiCost - fixed,
       dau14: dau,
-      funnel: [
-        users.length,
-        users.where((u) => u.onboardingComplete).length,
-        users.where((u) => u.addedFirstFood).length,
-        users.where((u) => u.reachedPaywall).length,
-        users.where((u) => u.triedToPay).length,
-        users.where((u) => u.everSubscribed).length,
-      ],
+      installs30: installs,
+      funnel: funnel,
+      biggestDropIndex: worst,
+      payProblems: problems,
+      sources: sources,
     );
   }
 }

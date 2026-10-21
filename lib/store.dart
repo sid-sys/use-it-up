@@ -28,6 +28,7 @@ class Store extends ChangeNotifier {
   String? problem; // what usually gets forgotten
   String? household; // just_me | two | three_four | five_plus
   String remindWhen = 'both'; // three | one | both
+  String? heardFrom; // friend | social | youtube | store | google | other
   bool notifAsked = false;
 
   List<FoodItem> _sorted(Iterable<FoodItem> l) => l.toList()..sort((a, b) => a.expiry.compareTo(b.expiry));
@@ -107,6 +108,7 @@ class Store extends ChangeNotifier {
     problem = p.getString('onb_problem');
     household = p.getString('onb_household');
     remindWhen = p.getString('onb_remind') ?? 'both';
+    heardFrom = p.getString('onb_heard');
     notifAsked = p.getBool('notif_asked') ?? false;
     loaded = true;
     await purgeUsed();
@@ -132,6 +134,11 @@ class Store extends ChangeNotifier {
       await p.setString('onb_household', household!);
     }
     await p.setString('onb_remind', remindWhen);
+    if (heardFrom == null) {
+      await p.remove('onb_heard');
+    } else {
+      await p.setString('onb_heard', heardFrom!);
+    }
     await p.setBool('notif_asked', notifAsked);
     await p.setBool('r3', prefs.threeDays);
     await p.setBool('r1', prefs.oneDay);
@@ -176,11 +183,12 @@ class Store extends ChangeNotifier {
   }
 
   /// Save onboarding progress and answers. Pass only what changed.
-  Future<void> saveOnboarding({int? step, String? problem, String? household, String? remindWhen, bool? notifAsked}) async {
+  Future<void> saveOnboarding({int? step, String? problem, String? household, String? remindWhen, String? heardFrom, bool? notifAsked}) async {
     if (step != null) onbStep = step;
     if (problem != null) this.problem = problem;
     if (household != null) this.household = household;
     if (remindWhen != null) this.remindWhen = remindWhen;
+    if (heardFrom != null) this.heardFrom = heardFrom;
     if (notifAsked != null) this.notifAsked = notifAsked;
     await _save();
   }
@@ -199,6 +207,7 @@ class Store extends ChangeNotifier {
     onbStep = 0;
     problem = null;
     household = null;
+    heardFrom = null;
     notifAsked = false;
     await _save();
     notifyListeners();
@@ -299,6 +308,7 @@ class Store extends ChangeNotifier {
     onbStep = 0;
     problem = null;
     household = null;
+    heardFrom = null;
     remindWhen = 'both';
     notifAsked = false;
     await Auth.instance.signOut();

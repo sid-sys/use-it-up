@@ -26,7 +26,7 @@ Future<void> loadFonts() async {
 }
 
 void main() {
-  testWidgets('first run: welcome, sign up, 3 questions, reminders, paywall, home', (tester) async {
+  testWidgets('first run: welcome, sign up, 4 questions, reminders, paywall, home', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -52,17 +52,22 @@ void main() {
     expect(Auth.displayName, 'Demo Google'); // name comes from the email
 
     // 3. Question 1: pick, continue
-    expect(find.text('1 of 3'), findsOneWidget);
+    expect(find.text('1 of 4'), findsOneWidget);
     await tapText(tester, 'Leftovers get forgotten');
     await tapText(tester, 'Continue');
 
     // Question 2: skip
-    expect(find.text('2 of 3'), findsOneWidget);
+    expect(find.text('2 of 4'), findsOneWidget);
     await tapText(tester, 'Skip');
 
-    // Question 3: choose "1 day before", finish
-    expect(find.text('3 of 3'), findsOneWidget);
+    // Question 3: choose "1 day before"
+    expect(find.text('3 of 4'), findsOneWidget);
     await tapText(tester, '1 day before');
+    await tapText(tester, 'Continue');
+
+    // Question 4: where they heard about us, then finish
+    expect(find.text('4 of 4'), findsOneWidget);
+    await tapText(tester, 'YouTube');
     await tapText(tester, 'Finish setup');
 
     // 4. Notification explanation
@@ -81,6 +86,7 @@ void main() {
     expect(app.store.onboarded, isTrue);
     expect(app.store.problem, 'leftovers');
     expect(app.store.household, isNull);
+    expect(app.store.heardFrom, 'youtube');
     expect(app.store.remindWhen, 'one');
     expect(app.store.prefs.oneDay, isTrue);
     expect(app.store.prefs.threeDays, isFalse);
