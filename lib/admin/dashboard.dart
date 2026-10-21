@@ -165,7 +165,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         MetricCard(
           icon: Icons.payments_outlined,
-          title: 'Revenue (last 30 days)',
+          title: 'Revenue, last 30 days',
           value: AppConfig.moneyShort(s.revenue30),
           sub: '${AppConfig.moneyShort(s.revenueTotal)} since the start',
           onTap: () => list('Paid in the last 30 days', s.paidLast30),

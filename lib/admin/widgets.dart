@@ -175,7 +175,6 @@ class MetricCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(child: Text(title, style: body(13, FontWeight.w700), maxLines: 2, overflow: TextOverflow.ellipsis)),
-              if (onTap != null) const Icon(Icons.chevron_right, size: 18),
             ]),
             const Spacer(),
             FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(value, style: display(32))),
