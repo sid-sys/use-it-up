@@ -41,12 +41,23 @@ class Store extends ChangeNotifier {
   /// Past the date, or due within 3 days. This is what the Home attention card counts and opens.
   List<FoodItem> get needsAttention => [...expired, ...fresh.where((i) => i.daysLeft() <= 3)];
 
-  List<FoodItem> get usedItems {
-    final list = _items.where((i) => i.used).toList()
-      ..sort((a, b) => (b.usedAt ?? b.addedAt).compareTo(a.usedAt ?? a.addedAt));
-    if (billing.isPremium) return list;
-    final cutoff = DateTime.now().subtract(const Duration(days: 7));
-    return list.where((i) => (i.usedAt ?? i.addedAt).isAfter(cutoff)).toList();
+  /// Used foods are kept for 24 hours only (so there is time to undo), then removed.
+  /// There is no history: it has no use for anyone.
+  static const usedKeepFor = Duration(hours: 24);
+
+  bool _expiredUsed(FoodItem i) => i.used && !(i.usedAt ?? i.addedAt).isAfter(DateTime.now().subtract(usedKeepFor));
+
+  List<FoodItem> get usedItems => _items.where((i) => i.used && !_expiredUsed(i)).toList()
+    ..sort((a, b) => (b.usedAt ?? b.addedAt).compareTo(a.usedAt ?? a.addedAt));
+
+  /// Removes used foods older than 24 hours. Called when the app opens and when it comes back.
+  Future<void> purgeUsed() async {
+    final before = _items.length;
+    _items.removeWhere(_expiredUsed);
+    if (_items.length != before) {
+      await _save();
+      notifyListeners();
+    }
   }
 
   List<FoodItem> get activeAll => _items.where((i) => !i.used).toList();
@@ -98,6 +109,7 @@ class Store extends ChangeNotifier {
     remindWhen = p.getString('onb_remind') ?? 'both';
     notifAsked = p.getBool('notif_asked') ?? false;
     loaded = true;
+    await purgeUsed();
     notifyListeners();
   }
 
@@ -179,6 +191,17 @@ class Store extends ChangeNotifier {
     p.threeDays = remindWhen == 'three' || remindWhen == 'both';
     p.oneDay = remindWhen == 'one' || remindWhen == 'both';
     await setPrefs(p);
+  }
+
+  /// For testing: show the welcome screens again. Food, account and plan stay as they are.
+  Future<void> restartOnboarding() async {
+    onboarded = false;
+    onbStep = 0;
+    problem = null;
+    household = null;
+    notifAsked = false;
+    await _save();
+    notifyListeners();
   }
 
   Future<void> finishOnboarding() async {

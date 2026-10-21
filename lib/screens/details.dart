@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../main.dart';
 import '../models.dart';
 import '../theme.dart';
+import '../toast.dart';
 import 'food_card.dart';
 import 'form.dart';
 
@@ -50,6 +51,8 @@ class DetailsScreen extends StatelessWidget {
                     icon: const Icon(Icons.check),
                     onPressed: () async {
                       await store.markUsed(item);
+                      toast('${item.name} marked as used. It is removed after 24 hours.',
+                          actionLabel: 'Undo', onAction: () => store.restoreItem(item));
                       if (context.mounted) Navigator.of(context).pop();
                     },
                     label: const Text('Mark as used'),
@@ -60,9 +63,10 @@ class DetailsScreen extends StatelessWidget {
                     icon: const Icon(Icons.undo),
                     onPressed: () async {
                       await store.restoreItem(item);
+                      toast('${item.name} is back in your fridge');
                       if (context.mounted) Navigator.of(context).pop();
                     },
-                    label: const Text('Move back to Home'),
+                    label: const Text('Move back to my fridge'),
                   ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
@@ -98,6 +102,7 @@ class DetailsScreen extends StatelessWidget {
                       );
                       if (ok == true) {
                         await store.delete(item);
+                        toast('${item.name} deleted');
                         if (context.mounted) Navigator.of(context).pop();
                       }
                     },

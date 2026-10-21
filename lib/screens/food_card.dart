@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../main.dart';
 import '../models.dart';
+import '../store.dart';
+import '../toast.dart';
 import '../theme.dart';
 import 'details.dart';
 
@@ -10,16 +12,17 @@ const expiredTint = Color(0xFFEAF2D2);
 
 /// One tap from the card. A snackbar offers Undo for a few seconds.
 void markUsedWithUndo(BuildContext context, FoodItem item) {
-  final messenger = ScaffoldMessenger.of(context);
   store.markUsed(item);
-  messenger
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(
-      content: Text('${item.name} marked as used'),
-      persist: false, // a snackbar with an action otherwise stays until dismissed
-      duration: const Duration(seconds: 4),
-      action: SnackBarAction(label: 'Undo', onPressed: () => store.restoreItem(item)),
-    ));
+  toast('${item.name} marked as used. It is removed after 24 hours.',
+      actionLabel: 'Undo', onAction: () => store.restoreItem(item));
+}
+
+/// "Removed in 5 hours" for a used food.
+String removesIn(FoodItem i) {
+  final left = Store.usedKeepFor - DateTime.now().difference(i.usedAt ?? i.addedAt);
+  if (left.inMinutes < 60) return 'Removed in ${left.inMinutes.clamp(1, 59)} min';
+  final h = (left.inMinutes / 60).ceil();
+  return 'Removed in $h ${h == 1 ? 'hour' : 'hours'}';
 }
 
 /// Name on top, then date and tag, then status. Only the tick sits on the right,
@@ -79,7 +82,7 @@ class FoodCard extends StatelessWidget {
                     Row(mainAxisSize: MainAxisSize.min, children: [
                       const Icon(Icons.check_circle, size: 17),
                       const SizedBox(width: 4),
-                      Text('Used', style: body(13, FontWeight.w700)),
+                      Text('Used · ${removesIn(item)}', style: body(13, FontWeight.w700)),
                     ])
                   else if (expired)
                     const ExpiredStamp()

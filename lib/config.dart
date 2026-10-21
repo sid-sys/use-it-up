@@ -28,6 +28,10 @@ class AppConfig {
   static const lifetimePrice = 69.99; // one-time purchase, no trial
   static const trialDays = 7;
 
+  /// Shows testing buttons in Profile (for example "Restart onboarding").
+  /// TODO: set this to false before the store release.
+  static const showTestTools = true;
+
   /// Product ids. They must match exactly what is created in App Store Connect and Google Play Console.
   static const productMonthly = 'monthly';
   static const productYearly = 'yearly';

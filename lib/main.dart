@@ -15,6 +15,7 @@ import 'screens/splash.dart';
 import 'screens/profile.dart';
 import 'store.dart';
 import 'theme.dart';
+import 'toast.dart';
 
 late final Billing billing;
 late final Store store;
@@ -60,7 +61,10 @@ class _UseItUpAppState extends State<UseItUpApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Coming back to the app pushes the "you have been away" nudge out again.
-    if (state == AppLifecycleState.resumed) store.refreshGeneralReminders();
+    if (state == AppLifecycleState.resumed) {
+      store.refreshGeneralReminders();
+      store.purgeUsed();
+    }
   }
 
   @override
@@ -69,6 +73,7 @@ class _UseItUpAppState extends State<UseItUpApp> with WidgetsBindingObserver {
       title: 'Use It Up: Food Expiry Tracker',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
+      scaffoldMessengerKey: rootMessenger,
       home: const _Gate(),
     );
   }
@@ -186,7 +191,7 @@ class _ShellState extends State<Shell> {
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.kitchen_outlined), selectedIcon: Icon(Icons.kitchen), label: 'Foods'),
+          NavigationDestination(icon: Icon(Icons.kitchen_outlined), selectedIcon: Icon(Icons.kitchen), label: 'Fridge'),
           NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),

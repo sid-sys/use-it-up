@@ -4,6 +4,7 @@ import '../billing.dart';
 import '../config.dart';
 import '../main.dart';
 import '../theme.dart';
+import '../toast.dart';
 import 'profile.dart' show openUrl;
 
 /// Soft paywall. Always dismissible. X and "Maybe later" do the same thing.
@@ -51,7 +52,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       Analytics.instance.log(Ev.subscribed, '${trial ? 'trial ' : ''}${_plan.name}');
       if (!mounted) return;
       if (widget.onClose == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Premium is on. Enjoy!')));
+        toast('Premium is on. Enjoy!');
       }
       _close();
     } on PurchaseCancelled {
@@ -189,7 +190,6 @@ class _PaywallScreenState extends State<PaywallScreen> {
 /// It can never hang: the billing code gives up after a short time and says so.
 Future<void> restorePurchasesWithFeedback(BuildContext context) async {
   final nav = Navigator.of(context, rootNavigator: true);
-  final messenger = ScaffoldMessenger.of(context);
   showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -211,7 +211,7 @@ Future<void> restorePurchasesWithFeedback(BuildContext context) async {
     message = 'Could not check your purchases. Please try again.';
   }
   nav.pop();
-  messenger.showSnackBar(SnackBar(content: Text(message), persist: false));
+  toast(message);
 }
 
 class _Feature extends StatelessWidget {

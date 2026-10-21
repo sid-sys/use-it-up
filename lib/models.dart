@@ -109,6 +109,9 @@ ShelfGroup shelfGroupOf(int daysLeft) {
   return ShelfGroup.longKeepers;
 }
 
+/// The Home card a food belongs to right now.
+ShelfGroup groupFor(FoodItem i) => i.isExpired ? ShelfGroup.checkBeforeToss : shelfGroupOf(i.daysLeft());
+
 extension ShelfGroupText on ShelfGroup {
   String get title => switch (this) {
         ShelfGroup.eatFirst => 'Eat me first',

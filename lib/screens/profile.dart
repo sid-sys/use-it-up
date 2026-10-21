@@ -9,12 +9,14 @@ import '../config.dart';
 import '../main.dart';
 import '../notifications.dart';
 import '../theme.dart';
+import '../toast.dart';
+import 'onboarding.dart' show SignInScreen;
 import 'paywall.dart';
 
 Future<void> openUrl(BuildContext context, String url) async {
   final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   if (!ok && context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open the link.')));
+    toast('Could not open the link.');
   }
 }
 
@@ -22,6 +24,7 @@ class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   void _set(void Function(ReminderPrefs p) change) {
+    toast('Reminder settings saved');
     final p = store.prefs;
     change(p);
     store.setPrefs(p);
@@ -141,7 +144,28 @@ class ProfileScreen extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.logout),
                   title: const Text('Sign out'),
-                  onTap: () => Auth.instance.signOut(),
+                  onTap: () async {
+                    await Auth.instance.signOut();
+                    toast('Signed out. Your food stays on this phone.');
+                  },
+                )
+              else
+                ListTile(
+                  leading: const Icon(Icons.login),
+                  title: const Text('Sign in or create account'),
+                  subtitle: const Text('Keep your account with Apple, Google or email'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignInScreen())),
+                ),
+              if (AppConfig.showTestTools)
+                ListTile(
+                  leading: const Icon(Icons.science_outlined),
+                  title: const Text('Restart onboarding (testing)'),
+                  subtitle: const Text('Shows the welcome screens again. Your food stays.'),
+                  onTap: () async {
+                    await store.restartOnboarding();
+                    toast('Onboarding restarted');
+                  },
                 ),
               // With an account, deleting means deleting the account too (an App Store rule).
               ListTile(
@@ -220,7 +244,10 @@ class ProfileScreen extends StatelessWidget {
         ),
       ),
     );
-    if (done == true) await store.deleteAllData();
+    if (done == true) {
+      await store.deleteAllData();
+      toast('Your account and data were deleted');
+    }
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
@@ -236,7 +263,10 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
-    if (ok == true) await store.deleteAllData();
+    if (ok == true) {
+      await store.deleteAllData();
+      toast('Your data was deleted');
+    }
   }
 }
 
@@ -268,7 +298,7 @@ class _PlanCard extends StatelessWidget {
       case PlanKind.free:
         sub = billing.cancelled
             ? 'Premium cancelled. Your food and reminders stay.'
-            : '${AppConfig.freeItemLimit} items, ${AppConfig.freeScans} free scans, 7 days of history.';
+            : '${AppConfig.freeItemLimit} foods and ${AppConfig.freeScans} free label scans.';
       case PlanKind.trial:
         sub = '${billing.trialDaysLeft} days left. Then ${billing.chosenPriceText} unless you cancel before ${f.format(billing.trialEnds!)}.';
       case PlanKind.monthly:

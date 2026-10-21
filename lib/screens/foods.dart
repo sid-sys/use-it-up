@@ -43,7 +43,7 @@ class _FoodsScreenState extends State<FoodsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
             child: Row(children: [
-              Expanded(child: Text('ALL YOUR FOOD', style: display(36))),
+              Expanded(child: Text('YOUR FRIDGE', style: display(36))),
               IconButton.filled(
                 style: IconButton.styleFrom(backgroundColor: cardWhite, foregroundColor: charcoal),
                 tooltip: 'Search',
@@ -173,8 +173,18 @@ class _UsedTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       children: [
-        Text(billing.isPremium ? 'Your full history' : 'Last 7 days. Premium keeps everything.',
-            style: body(13, FontWeight.w400, Colors.black54)),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: lime.withValues(alpha: .45), borderRadius: BorderRadius.circular(14)),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Icon(Icons.timer_outlined, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text('Used foods are removed after 24 hours. We do not keep a history. Tap the tick again to undo before then.',
+                  style: body(13.5, FontWeight.w600)),
+            ),
+          ]),
+        ),
         const SizedBox(height: 12),
         for (final i in items) FoodCard(item: i),
       ],

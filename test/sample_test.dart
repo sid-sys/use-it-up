@@ -7,6 +7,7 @@ import 'package:use_it_up/billing.dart';
 import 'package:use_it_up/main.dart' as app;
 import 'package:use_it_up/models.dart';
 import 'package:use_it_up/sample_data.dart';
+import 'package:use_it_up/toast.dart';
 
 Future<void> loadFonts() async {
   for (final (family, path) in [('Anton', 'assets/fonts/Anton-Regular.ttf'), ('Inter', 'assets/fonts/Inter.ttf')]) {
@@ -56,6 +57,8 @@ void main() {
     expect(find.text('Start free trial'), findsOneWidget);
 
     // Restore purchases shows progress and then always says what happened
+    rootMessenger.currentState?.clearSnackBars(); // a message at the bottom would cover the button
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Restore purchases'));
     await tester.pumpAndSettle();
     expect(find.text('No past purchases found.'), findsOneWidget);

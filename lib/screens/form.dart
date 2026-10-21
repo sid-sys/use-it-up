@@ -5,6 +5,8 @@ import '../main.dart';
 import '../models.dart';
 import '../scan/parser.dart';
 import '../theme.dart';
+import '../toast.dart';
+import 'group.dart';
 
 /// One form for manual entry, scan review and editing. The user always confirms.
 class FoodFormScreen extends StatefulWidget {
@@ -65,16 +67,25 @@ class _FoodFormScreenState extends State<FoodFormScreen> {
         ..quantity = _qty
         ..storage = _storage;
       await store.update(e);
-    } else {
-      await store.add(FoodItem(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        name: name,
-        expiry: date,
-        quantity: _qty,
-        storage: _storage,
-      ));
+      toast('$name saved');
+      if (mounted) Navigator.of(context).pop();
+      return;
     }
-    if (mounted) Navigator.of(context).pop();
+    final item = FoodItem(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      name: name,
+      expiry: date,
+      quantity: _qty,
+      storage: _storage,
+    );
+    await store.add(item);
+    if (!mounted) return;
+    // Back to the main screen, then open the card this food belongs to, so it is easy to find.
+    final group = groupFor(item);
+    final nav = Navigator.of(context);
+    toast('$name added to ${group.title}');
+    nav.popUntil((r) => r.isFirst);
+    nav.push(MaterialPageRoute(builder: (_) => GroupScreen(group: group)));
   }
 
   @override

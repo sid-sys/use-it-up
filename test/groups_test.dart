@@ -141,9 +141,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // Foods nav item: the three tabs live here, without the Add food button
-    await tester.tap(find.text('Foods'));
+    await tester.tap(find.text('Fridge'));
     await tester.pumpAndSettle();
-    expect(find.text('ALL YOUR FOOD'), findsOneWidget);
+    expect(find.text('YOUR FRIDGE'), findsOneWidget);
     expect(find.text('Add food'), findsNothing);
     expect(find.text('Foods 7'), findsOneWidget);
     expect(find.text('Expired 1'), findsOneWidget);
@@ -163,7 +163,7 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('Add food'), findsOneWidget);
-    expect(find.text('ALL YOUR FOOD'), findsNothing);
+    expect(find.text('YOUR FRIDGE'), findsNothing);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('Leave Use It Up?'), findsOneWidget);
@@ -198,10 +198,26 @@ void main() {
     expect(find.text('Load sample foods (demo)'), findsOneWidget);
     await tester.dragUntilVisible(find.text('Add food'), find.byType(Scrollable).first, const Offset(0, 300));
 
+    // Adding a food shows a message and opens the card the food belongs to
+    await tester.tap(find.text('Add food'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ENTER MANUALLY'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Oranges');
+    await tester.tap(find.text('+1 week'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save food'));
+    await tester.pumpAndSettle();
+    expect(find.text('EAT ME FIRST'), findsOneWidget);
+    expect(find.text('Oranges'), findsOneWidget);
+    expect(find.text('Oranges added to Eat me first'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
     // Home can open the Expired tab directly
     app.openFoods.value = app.FoodsRequest(1);
     await tester.pumpAndSettle();
-    expect(find.text('ALL YOUR FOOD'), findsOneWidget);
+    expect(find.text('YOUR FRIDGE'), findsOneWidget);
     expect(find.textContaining('These passed their date'), findsOneWidget);
   });
 }

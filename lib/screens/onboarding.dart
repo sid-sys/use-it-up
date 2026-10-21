@@ -4,6 +4,7 @@ import '../config.dart';
 import '../main.dart';
 import '../notifications.dart';
 import '../theme.dart';
+import '../toast.dart';
 import 'paywall.dart';
 import 'profile.dart' show openUrl;
 
@@ -160,6 +161,26 @@ class _Welcome extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------- 2. Sign up
+
+/// The sign-up screen as a normal page. Used from Profile, for someone who started as a guest.
+class SignInScreen extends StatelessWidget {
+  const SignInScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: _SignUp(
+          onBack: () => Navigator.of(context).pop(),
+          onDone: () {
+            Navigator.of(context).pop();
+            toast(Auth.signedIn ? 'Signed in as ${Auth.displayName}' : 'Continuing as a guest');
+          },
+        ),
+      ),
+    );
+  }
+}
 
 class _SignUp extends StatefulWidget {
   final VoidCallback onBack;
