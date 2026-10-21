@@ -72,7 +72,7 @@ class _BellPainter extends CustomPainter {
     final dark = Paint()..color = const Color(0xFFB7DD2E);
 
     // Top knob
-    canvas.drawCircle(Offset(w * .5, h * .12), w * .06, dark);
+    canvas.drawCircle(Offset(w * .5, h * .185), w * .06, dark);
     // Dome
     final dome = Path()
       ..moveTo(w * .22, h * .72)
