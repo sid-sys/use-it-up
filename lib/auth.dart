@@ -41,6 +41,25 @@ class Auth extends ChangeNotifier {
   AuthProvider? provider;
   bool _googleReady = false;
 
+  bool _listening = false;
+
+  /// Firebase tells us the moment a sign-in finishes, even when the browser page of an Apple sign-in
+  /// stays open and never sends the person back. The app then moves on by itself.
+  void _listenToFirebase() {
+    if (_listening || demoSignIn) return;
+    _listening = true;
+    fb.FirebaseAuth.instance.authStateChanges().listen((u) async {
+      final signed = u != null && !u.isAnonymous;
+      if (signed && (_email == null || _email != (u.email ?? 'Apple account'))) {
+        final id = u.providerData.map((p) => p.providerId).firstWhere((_) => true, orElse: () => '');
+        final p = id == 'apple.com' ? AuthProvider.apple : (id == 'google.com' ? AuthProvider.google : AuthProvider.email);
+        await _set(u.email ?? 'Apple account', _niceName(u), p);
+      } else if (!signed && _email != null) {
+        await signOut();
+      }
+    });
+  }
+
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     _email = p.getString('auth_email');
@@ -59,6 +78,7 @@ class Auth extends ChangeNotifier {
         _name = null;
         provider = null;
       }
+      _listenToFirebase();
     }
     notifyListeners();
   }

@@ -231,9 +231,51 @@ class _SignUp extends StatefulWidget {
   State<_SignUp> createState() => _SignUpState();
 }
 
-class _SignUpState extends State<_SignUp> {
+class _SignUpState extends State<_SignUp> with WidgetsBindingObserver {
   String? _error;
   bool _busy = false;
+  bool _done = false; // onDone runs once, whichever way the sign-in finishes
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    Auth.instance.addListener(_authChanged);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    Auth.instance.removeListener(_authChanged);
+    super.dispose();
+  }
+
+  /// A sign-in can finish without this screen hearing about it (an Apple sign-in in the browser, for example).
+  /// As soon as the account is there, move on.
+  void _authChanged() {
+    if (Auth.signedIn && !_done && mounted) _finish();
+  }
+
+  void _finish() {
+    if (_done) return;
+    _done = true;
+    if (mounted) setState(() => _busy = false);
+    widget.onDone();
+  }
+
+  /// Back from the browser: give the sign-in a moment to finish. If it did not, say so and let the person try again.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !_busy) return;
+    Future<void>.delayed(const Duration(seconds: 3), () {
+      if (mounted && _busy && !_done && !Auth.signedIn) {
+        setState(() {
+          _busy = false;
+          _error = 'Sign-in did not finish. Please try again.';
+        });
+      }
+    });
+  }
 
   Future<void> _run(AuthProvider p, {String? email, String? name, String? password, bool create = true}) async {
     setState(() {
@@ -245,7 +287,7 @@ class _SignUpState extends State<_SignUp> {
     setState(() => _busy = false);
     if (err == null) {
       Analytics.instance.log(Ev.signedUp, p.name);
-      widget.onDone();
+      _finish();
     } else {
       setState(() => _error = err);
     }
@@ -361,6 +403,15 @@ class _SignUpState extends State<_SignUp> {
         _outlined(Icons.g_mobiledata, 'Continue with Google', _busy ? null : () => _run(AuthProvider.google)),
         const SizedBox(height: 12),
         _outlined(Icons.mail_outline, 'Continue with email', _busy ? null : _emailSheet),
+        if (_busy)
+          Padding(
+            padding: const EdgeInsets.only(top: 14),
+            child: Row(children: [
+              const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2, color: charcoal)),
+              const SizedBox(width: 12),
+              Expanded(child: Text('Finish signing in in the window that opened, then come back here.', style: body(13.5, FontWeight.w600))),
+            ]),
+          ),
         if (_error != null) ...[
           const SizedBox(height: 14),
           Container(
