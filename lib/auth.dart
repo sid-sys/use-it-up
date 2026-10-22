@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'config.dart';
 import 'firebase_options.dart';
 import 'notifications.dart';
 
@@ -25,6 +26,17 @@ class Auth extends ChangeNotifier {
   static String? get email => instance._email;
   static String get displayName => instance._name ?? (instance._email == null ? 'Guest' : instance._email!.split('@').first);
   static bool get signedIn => instance._email != null;
+
+  static bool _is(List<String> list) {
+    final e = instance._email?.trim().toLowerCase();
+    return e != null && list.any((x) => x.toLowerCase() == e);
+  }
+
+  /// Only the owner. Decides who sees the Admin panel and the testing buttons.
+  static bool get isAdmin => _is([AppConfig.adminEmail]);
+
+  /// The App Store and Google Play review logins. They get Premium without paying.
+  static bool get isReviewer => _is(AppConfig.reviewEmails);
 
   /// "john.doe42@gmail.com" becomes "John Doe". Used for Google and Apple sign-in.
   static String nameFromEmail(String email) {

@@ -1,8 +1,8 @@
 /// All app-wide settings in ONE place. Edit values here, not inside widgets.
 class AppConfig {
-  /// Mock build: everyone can open the admin panel and it shows made-up data.
-  /// Release builds MUST be built with:  flutter build apk --release --dart-define=MOCK=false
-  static const bool mock = bool.fromEnvironment('MOCK', defaultValue: true);
+  /// Off in every real build. The automatic tests turn it on (see test/flutter_test_config.dart) so
+  /// payments are pretend there. Nothing in the app depends on it being on.
+  static bool mock = const bool.fromEnvironment('MOCK');
 
   /// The only account that sees "Admin panel" in a real build.
   /// Hiding the button is NOT security. See README: the server must check this too.
@@ -28,9 +28,10 @@ class AppConfig {
   static const lifetimePrice = 69.99; // one-time purchase, no trial
   static const trialDays = 7;
 
-  /// Shows testing buttons in Profile (for example "Restart onboarding").
-  /// TODO: set this to false before the store release.
-  static const showTestTools = true;
+  /// Logins for the App Store and Google Play review teams. They get Premium without paying, so a reviewer
+  /// can see every screen. Create each one by hand in Firebase (Authentication > Users > Add user) and give
+  /// the email and password only in the store review notes. See the README.
+  static const reviewEmails = <String>['tetraheaddevelopers+review@gmail.com'];
 
   /// Product ids. They must match exactly what is created in App Store Connect and Google Play Console.
   static const productMonthly = 'monthly';

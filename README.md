@@ -10,17 +10,32 @@ License: proprietary, all rights reserved (see [LICENSE](LICENSE)).
 
 ```bash
 flutter pub get
-flutter run                      # MOCK build (default): everyone can open the admin panel
+flutter run                      # real sign-in and real payments. There is no demo mode.
 flutter test
 flutter analyze
 ```
 
-Release builds **must** turn mock off:
+Every build is real: sign-in goes to Firebase and payments go to the stores. The Admin panel and the
+testing buttons show only for the owner (`AppConfig.adminEmail`). The automatic tests get pretend payments and a
+pretend sign-in from `test/flutter_test_config.dart`; the app never turns those on by itself.
 
 ```bash
-flutter build apk --release --dart-define=MOCK=false
-flutter build appbundle --release --dart-define=MOCK=false
+flutter build apk --release
+flutter build appbundle --release
 ```
+
+## Review login (App Store and Google Play)
+
+Reviewers must be able to open the whole app without paying. `AppConfig.reviewEmails` lists the review login(s).
+A person who signs in with one of them gets Premium for free, with no food limit and no Cancel button.
+
+1. Firebase console > Authentication > Users > **Add user**. Email: the one in `AppConfig.reviewEmails`
+   (today `tetraheaddevelopers+review@gmail.com`). Choose a strong password.
+2. Keep that account: if it is deleted, anyone could register the same email and get free Premium.
+3. App Store Connect > App Review Information: tick **Sign-in required**, enter the email and password.
+   Google Play Console > App content > **App access**: add the same login and instructions.
+4. The review login is also left out of the Admin panel numbers (`AdminConfig.reviewTeamEmails`).
+5. Reviewers still see the paywall during onboarding and can test a purchase with the store's sandbox.
 
 ## Where things are
 
@@ -31,7 +46,7 @@ flutter build appbundle --release --dart-define=MOCK=false
 | `lib/analytics.dart` | `Analytics.log(type, detail)`. Events are stored on the device. |
 | `lib/notifications.dart`, `lib/notification_log.dart` | Local reminders and the log shown in the admin panel. |
 | `lib/scan/` | Photo reading (Google ML Kit, on device) and the date parser. |
-| `lib/admin/` | Admin panel: rules (`admin_config.dart`), models, repository (mock and local), dashboard, users, feedback. |
+| `lib/admin/` | Admin panel: rules (`admin_config.dart`), models, repository, dashboard, users, feedback. |
 | `firestore.rules` | Server rules for the admin data. Not deployed yet. |
 | `docs/` | Public pages for GitHub Pages: privacy, terms, data deletion. |
 
@@ -40,7 +55,7 @@ flutter build appbundle --release --dart-define=MOCK=false
 Open it from Profile > Admin panel. In a real build only `AppConfig.adminEmail` sees the button.
 
 **What is real today.** The panel reads data only through `AdminRepository` (`lib/admin/repository.dart`).
-- A demo build (`MOCK`) shows about 60 made-up accounts: 50 real-looking people and 10 that "Real users only" must hide.
+- The app contains no made-up data. The tests carry their own made-up accounts (`test/support/mock_admin_repository.dart`).
 - A real build has no server yet, so it shows only this phone, as one user, and says so. Nothing is made up.
 
 **Real users only.** The switch is on by default. The rules that decide who is hidden are all in
@@ -85,7 +100,7 @@ The `docs/` folder is published at `https://sid-sys.github.io/use-it-up/`:
 
 ## Payments (App Store and Google Play)
 
-Real builds (`--dart-define=MOCK=false`) use the stores directly through `in_app_purchase`. There is no RevenueCat.
+The app uses the stores directly through `in_app_purchase`. There is no RevenueCat.
 
 Create these three products. The ids must match `AppConfig.product*` in `lib/config.dart`:
 

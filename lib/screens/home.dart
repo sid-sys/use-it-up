@@ -4,7 +4,6 @@ import '../config.dart';
 import '../main.dart';
 import '../models.dart';
 import '../theme.dart';
-import '../toast.dart';
 import '../widgets/fruit_bowl.dart';
 import '../widgets/week_strip.dart';
 import 'add.dart';
@@ -65,7 +64,6 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 _CardGrid(),
               ],
-              if (AppConfig.mock) const _SampleData(),
             ],
           ),
         );
@@ -213,45 +211,6 @@ class _FirstFood extends StatelessWidget {
           child: const Text('Add your first food'),
         ),
       ]),
-    );
-  }
-}
-
-/// Demo helper, shown only in MOCK builds: fills the app with sample foods so the
-/// layout can be judged. Never shown in a real build.
-class _SampleData extends StatelessWidget {
-  const _SampleData();
-
-  @override
-  Widget build(BuildContext context) {
-    // Watches the store itself: this widget is const, so its parent never rebuilds it.
-    return ListenableBuilder(listenable: store, builder: (context, _) => _button());
-  }
-
-  Widget _button() {
-    final has = store.hasSamples;
-    return Padding(
-      padding: const EdgeInsets.only(top: 18),
-      child: Center(
-        child: OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: charcoal,
-            side: const BorderSide(color: Colors.black26),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-          onPressed: () async {
-            if (has) {
-              await store.removeSamples();
-              toast('Sample foods removed');
-            } else {
-              await store.loadSamples();
-              toast('Sample foods added');
-            }
-          },
-          icon: Icon(has ? Icons.delete_sweep_outlined : Icons.science_outlined, size: 18),
-          label: Text(has ? 'Remove sample foods (demo)' : 'Load sample foods (demo)'),
-        ),
-      ),
     );
   }
 }

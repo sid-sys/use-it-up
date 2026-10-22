@@ -187,19 +187,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('8/20 items'), findsOneWidget);
 
-    // The demo button switches between Load and Remove, filling up to the free limit
-    final load = find.text('Load sample foods (demo)');
-    await tester.dragUntilVisible(load, find.byType(Scrollable).first, const Offset(0, -300));
-    await tester.tap(load);
-    await tester.pumpAndSettle();
-    expect(app.store.itemCount, 20);
-    expect(find.text('Remove sample foods (demo)'), findsOneWidget);
-    expect(find.text('Load sample foods (demo)'), findsNothing);
-    await tester.tap(find.text('Remove sample foods (demo)'));
-    await tester.pumpAndSettle();
-    expect(app.store.itemCount, 8);
-    expect(find.text('Load sample foods (demo)'), findsOneWidget);
-    await tester.dragUntilVisible(find.text('Add food'), find.byType(Scrollable).first, const Offset(0, 300));
+    // No demo foods or demo buttons in the app
+    expect(find.textContaining('sample'), findsNothing);
 
     // Adding a food shows a message and opens the card the food belongs to
     await tester.tap(find.text('Add food'));

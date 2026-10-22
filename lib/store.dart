@@ -9,7 +9,6 @@ import 'config.dart';
 import 'models.dart';
 import 'notification_log.dart';
 import 'notifications.dart';
-import 'sample_data.dart';
 
 class Store extends ChangeNotifier {
   final Billing billing;
@@ -145,30 +144,6 @@ class Store extends ChangeNotifier {
     await p.setBool('r0', prefs.onDay);
     await p.setBool('rw2', prefs.weekly);
     await p.setBool('rg', prefs.reengage);
-  }
-
-  bool get hasSamples => _items.any((i) => i.id.startsWith('sample_'));
-
-  /// Demo foods for MOCK builds. No per-food reminders, so the notification log stays clean.
-  Future<void> loadSamples() async {
-    if (hasSamples) return;
-    // The free plan holds 20 foods, so samples stop at the limit.
-    var room = billing.isPremium ? 1 << 30 : AppConfig.freeItemLimit - itemCount;
-    for (final s in sampleFoods()) {
-      if (room <= 0) break;
-      _items.add(s);
-      room--;
-    }
-    await _save();
-    notifyListeners();
-    await refreshGeneralReminders();
-  }
-
-  Future<void> removeSamples() async {
-    _items.removeWhere((i) => i.id.startsWith('sample_'));
-    await _save();
-    notifyListeners();
-    await refreshGeneralReminders();
   }
 
   /// Re-plans the weekly overview and the inactivity nudge. Call when the app opens

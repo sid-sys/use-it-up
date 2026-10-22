@@ -31,8 +31,6 @@ class ProfileScreen extends StatelessWidget {
     store.setPrefs(p);
   }
 
-  bool get _isAdmin => AppConfig.mock || Auth.email == AppConfig.adminEmail;
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -44,6 +42,21 @@ class ProfileScreen extends StatelessWidget {
           children: [
             Text('PROFILE.', style: display(40)),
             const SizedBox(height: 16),
+            // Only the owner sees this.
+            if (Auth.isAdmin) ...[
+              Material(
+                color: lime,
+                borderRadius: BorderRadius.circular(18),
+                child: ListTile(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  leading: const Icon(Icons.admin_panel_settings_outlined),
+                  title: Text('Admin panel', style: body(16, FontWeight.w800)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminDashboard())),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             Row(children: [
               CircleAvatar(
                 radius: 26,
@@ -109,13 +122,6 @@ class ProfileScreen extends StatelessWidget {
               ),
             const SizedBox(height: 24),
             _Box(children: [
-              if (_isAdmin)
-                ListTile(
-                  leading: const Icon(Icons.admin_panel_settings_outlined),
-                  title: const Text('Admin panel'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminDashboard())),
-                ),
               ListTile(
                 leading: const Icon(Icons.restore),
                 title: const Text('Restore purchases'),
@@ -155,14 +161,14 @@ class ProfileScreen extends StatelessWidget {
               ),
               if (Auth.signedIn)
                 ListTile(
-                  leading: const Icon(Icons.logout),
-                  title: const Text('Sign out'),
+                  leading: const Icon(Icons.logout, color: redDark),
+                  title: const Text('Sign out', style: TextStyle(color: redDark, fontWeight: FontWeight.w600)),
                   onTap: () async {
                     await Auth.instance.signOut();
                     toast('Signed out');
                   },
                 ),
-              if (AppConfig.showTestTools)
+              if (Auth.isAdmin) // testing only, and only for the owner
                 ListTile(
                   leading: const Icon(Icons.science_outlined),
                   title: const Text('Restart onboarding (testing)'),

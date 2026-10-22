@@ -14,14 +14,16 @@ import 'users_screen.dart';
 import 'widgets.dart';
 
 class AdminDashboard extends StatefulWidget {
-  const AdminDashboard({super.key});
+  /// Tests give it their own data. The app always reads [LocalAdminRepository].
+  final AdminRepository? repository;
+  const AdminDashboard({super.key, this.repository});
 
   @override
   State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
-  final AdminRepository _repo = createAdminRepository();
+  late final AdminRepository _repo = widget.repository ?? createAdminRepository();
   AdminData? _data;
   String? _error;
   bool _realOnly = true; // hides test, review, robot and my own accounts from EVERYTHING below
@@ -49,7 +51,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
       appBar: AppBar(
         title: const Text('ADMIN PANEL'),
         actions: [
-          if (AppConfig.mock) const Padding(padding: EdgeInsets.only(right: 4), child: Center(child: MockTag())),
           IconButton(tooltip: 'Refresh', icon: const Icon(Icons.refresh), onPressed: _load),
         ],
       ),
@@ -79,7 +80,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       Flexible(child: Text('Signed in as\n$email', textAlign: TextAlign.end, style: body(12, FontWeight.w500, muted))),
     ]);
 
-    final notice = data.serverConnected || AppConfig.mock
+    final notice = data.serverConnected
         ? null
         : Container(
             padding: const EdgeInsets.all(14),
@@ -278,7 +279,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           textStyle: body(16, FontWeight.w600),
         ),
-        onPressed: () => _open(FeedbackScreen(items: data.feedback, saveOnPhone: !AppConfig.mock)),
+        onPressed: () => _open(FeedbackScreen(items: data.feedback, saveOnPhone: !data.serverConnected)),
         child: Text('Feedback and bug reports (${data.feedback.where((f) => !f.handled).length} open)'),
       ),
     ]);

@@ -6,11 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:use_it_up/admin/admin_config.dart';
 import 'package:use_it_up/admin/dashboard.dart';
 import 'package:use_it_up/admin/models.dart';
-import 'package:use_it_up/admin/repository.dart';
 import 'package:use_it_up/analytics.dart';
 import 'package:use_it_up/config.dart';
 import 'package:use_it_up/main.dart' as app;
 import 'package:use_it_up/theme.dart';
+
+import 'support/mock_admin_repository.dart';
 
 Future<void> loadFonts() async {
   for (final (family, path) in [('Anton', 'assets/fonts/Anton-Regular.ttf'), ('Inter', 'assets/fonts/Inter.ttf')]) {
@@ -171,7 +172,7 @@ void main() {
     Analytics.instance.events.clear();
     expect(app.UseItUpApp, isNotNull);
 
-    await tester.pumpWidget(MaterialApp(theme: buildTheme(), home: const AdminDashboard()));
+    await tester.pumpWidget(MaterialApp(theme: buildTheme(), home: AdminDashboard(repository: MockAdminRepository())));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 

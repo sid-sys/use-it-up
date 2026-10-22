@@ -25,14 +25,14 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle();
 
-    expect(find.text('Continue with Apple'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
     expect(Auth.signedIn, isFalse);
 
     // The account appears without anyone tapping a button on this screen.
-    await tester.runAsync(() => Auth.instance.signIn(AuthProvider.apple));
+    await tester.runAsync(() => Auth.instance.signIn(AuthProvider.google));
     await tester.pumpAndSettle();
 
-    expect(find.text('Continue with Apple'), findsNothing);
+    expect(find.text('Continue with Google'), findsNothing);
     expect(find.text('Start 7-day free trial'), findsOneWidget, reason: 'on to the paywall');
   });
 }

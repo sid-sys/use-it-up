@@ -10,7 +10,7 @@ class AdminConfig {
   static const adminEmails = <String>[AppConfig.adminEmail];
 
   /// The login the store review team uses. Replace with the real login email.
-  static const reviewTeamEmails = <String>['review.team@example.com'];
+  static const reviewTeamEmails = AppConfig.reviewEmails;
 
   /// Email endings of robots. Google's Firebase Test Lab uses this one.
   static const robotEmailEndings = <String>['@cloudtestlabaccounts.com'];

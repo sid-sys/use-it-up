@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'auth.dart';
 import 'config.dart';
 import 'notifications.dart';
 
@@ -43,7 +44,7 @@ class Billing extends ChangeNotifier {
           _withTrial &&
           _since != null &&
           DateTime.now().difference(_since!).inDays < trialDays;
-  bool get isPremium => AppConfig.mock ? (_paid || trialActive) : _entitled;
+  bool get isPremium => Auth.isReviewer || (AppConfig.mock ? (_paid || trialActive) : _entitled);
   int get trialDaysLeft {
     final start = AppConfig.mock ? _trialStart : _since;
     return start == null ? 0 : (trialDays - DateTime.now().difference(start).inDays).clamp(0, trialDays);
@@ -52,6 +53,7 @@ class Billing extends ChangeNotifier {
   bool get cancelled => AppConfig.mock && _cancelled;
 
   PlanKind get plan {
+    if (Auth.isReviewer) return PlanKind.lifetime; // no Cancel or Change plan buttons for a review login
     if (!AppConfig.mock) {
       if (!_entitled) return PlanKind.free;
       return trialActive ? PlanKind.trial : _chosen;
@@ -61,7 +63,7 @@ class Billing extends ChangeNotifier {
 
   DateTime? get trialEnds => (AppConfig.mock ? _trialStart : _since)?.add(const Duration(days: trialDays));
 
-  String get planName => switch (plan) {
+  String get planName => Auth.isReviewer ? 'Premium (review login)' : switch (plan) {
         PlanKind.free => 'Free',
         PlanKind.trial => 'Premium trial',
         PlanKind.monthly => 'Premium monthly',
@@ -100,6 +102,9 @@ class Billing extends ChangeNotifier {
   // ------------------------------------------------------------------ persistence
 
   Future<void> load() async {
+    // A sign-in or sign-out can switch Premium on or off for a review login.
+    Auth.instance.removeListener(notifyListeners);
+    Auth.instance.addListener(notifyListeners);
     final p = await SharedPreferences.getInstance();
     final s = p.getString('trial_start');
     _trialStart = s == null ? null : DateTime.tryParse(s);

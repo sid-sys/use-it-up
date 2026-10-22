@@ -5,12 +5,6 @@ name: iOS TestFlight
 # Needs these repository secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, APPLE_TEAM_ID.
 on:
   workflow_dispatch:
-    inputs:
-      mock:
-        description: 'MOCK build (fake sign-in and payments, demo admin panel). Use true until real services are connected.'
-        default: 'true'
-        type: choice
-        options: ['true', 'false']
 
 jobs:
   testflight:
@@ -35,7 +29,7 @@ jobs:
 
       # Prepares the Flutter files and pods. No signing yet.
       - name: Flutter build (unsigned)
-        run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define=MOCK=${{ inputs.mock }}
+        run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }}
 
       # Apple creates the signing certificate and profile for us, using the API key.
       - name: Archive

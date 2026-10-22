@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,7 +6,6 @@ import 'package:use_it_up/billing.dart';
 import 'package:use_it_up/auth.dart';
 import 'package:use_it_up/main.dart' as app;
 import 'package:use_it_up/models.dart';
-import 'package:use_it_up/sample_data.dart';
 import 'package:use_it_up/toast.dart';
 
 Future<void> loadFonts() async {
@@ -18,18 +16,7 @@ Future<void> loadFonts() async {
 }
 
 void main() {
-  test('sample foods: exactly 20, every card has some', () {
-    final s = sampleFoods();
-    int count(ShelfGroup g) => s.where((i) => i.daysLeft() >= 0 && shelfGroupOf(i.daysLeft()) == g).length;
-    expect(s.length, 20);
-    expect(count(ShelfGroup.eatFirst), greaterThanOrEqualTo(6));
-    expect(count(ShelfGroup.stillFresh), greaterThanOrEqualTo(4));
-    expect(count(ShelfGroup.longKeepers), greaterThanOrEqualTo(5));
-    expect(s.where((i) => i.isExpired).length, 2);
-    expect(s.every((i) => i.id.startsWith('sample_')), isTrue);
-  });
-
-  testWidgets('Samples fill the free limit. At 20 foods, Add food opens the upgrade paywall', (tester) async {
+  testWidgets('At 20 foods, Add food opens the upgrade paywall', (tester) async {
     tester.view.physicalSize = const Size(1080, 3200);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -43,14 +30,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('YOUR FRIDGE IS EMPTY'), findsOneWidget);
-    final btn = find.text('Load sample foods (demo)');
-    await tester.ensureVisible(btn);
-    await tester.tap(btn);
+    for (var i = 0; i < 20; i++) {
+      await app.store.add(FoodItem(id: 'f$i', name: 'Food $i', expiry: DateTime.now().add(Duration(days: i + 1))));
+    }
     await tester.pumpAndSettle();
 
     expect(app.store.itemCount, 20, reason: 'never more than the free limit');
     expect(find.text('20/20 items'), findsOneWidget);
     expect(find.text('Eat me first'), findsOneWidget);
+    expect(find.textContaining('sample'), findsNothing, reason: 'no demo foods or demo buttons in the app');
 
     // At the limit, Add food goes straight to the upgrade paywall.
     await tester.tap(find.text('Add food'));
@@ -88,11 +76,5 @@ void main() {
     await app.billing.subscribe(PlanKind.lifetime);
     expect(app.store.atItemLimit, isFalse);
 
-    final remove = find.text('Remove sample foods (demo)');
-    await tester.dragUntilVisible(remove, find.byType(Scrollable).first, const Offset(0, -300));
-    await tester.tap(remove);
-    await tester.pumpAndSettle();
-    expect(app.store.activeAll, isEmpty);
-    expect(find.text('YOUR FRIDGE IS EMPTY'), findsOneWidget);
   });
 }

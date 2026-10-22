@@ -41,14 +41,14 @@ void main() {
 
     expect(Auth.signedIn, isFalse);
     expect(find.text("LET'S GET YOU\nSTARTED."), findsOneWidget);
-    expect(find.text('Continue with Apple'), findsOneWidget);
+    expect(find.text('Continue with Apple'), findsNothing, reason: 'no Sign in with Apple on Android');
     expect(find.text('Continue with Google'), findsOneWidget);
     expect(find.text('Continue without an account'), findsNothing);
     expect(find.byTooltip('Back'), findsNothing);
     expect(find.text('Home'), findsNothing, reason: 'the app is not reachable while signed out');
 
     // Signing in again goes straight back to the app.
-    await tester.tap(find.text('Continue with Apple'));
+    await tester.tap(find.text('Continue with Google'));
     await tester.pumpAndSettle();
     expect(find.text('Home'), findsOneWidget);
   });

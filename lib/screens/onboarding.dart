@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../analytics.dart';
@@ -393,13 +394,16 @@ class _SignUpState extends State<_SignUp> with WidgetsBindingObserver {
         const SizedBox(height: 14),
         Text('Save your food list and keep your reminders with you.', style: body(17)),
         const SizedBox(height: 28),
-        FilledButton.icon(
-          style: darkButton(),
-          onPressed: _busy ? null : () => _run(AuthProvider.apple),
-          icon: const Icon(Icons.apple),
-          label: const Text('Continue with Apple'),
-        ),
-        const SizedBox(height: 12),
+        // Sign in with Apple is for iPhone. On Android it needs a web page that does not return reliably.
+        if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) ...[
+          FilledButton.icon(
+            style: darkButton(),
+            onPressed: _busy ? null : () => _run(AuthProvider.apple),
+            icon: const Icon(Icons.apple),
+            label: const Text('Continue with Apple'),
+          ),
+          const SizedBox(height: 12),
+        ],
         _outlined(Icons.g_mobiledata, 'Continue with Google', _busy ? null : () => _run(AuthProvider.google)),
         const SizedBox(height: 12),
         _outlined(Icons.mail_outline, 'Continue with email', _busy ? null : _emailSheet),
