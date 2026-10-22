@@ -104,7 +104,7 @@ class _BellPainter extends CustomPainter {
     canvas.drawRRect(rim, light);
     canvas.save();
     canvas.clipRRect(rim);
-    canvas.drawRect(Rect.fromLTWH(w * .66, h * .76, w * .30, h * .08), dark);
+    canvas.drawRect(Rect.fromLTWH(w * .745, h * .76, w * .22, h * .08), dark);
     canvas.restore();
 
     // Clapper under the rim

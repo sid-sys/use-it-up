@@ -17,7 +17,7 @@ class Auth extends ChangeNotifier {
 
   /// Only the automatic tests turn this on: they cannot reach Firebase, so they get a pretend account.
   /// A demo build on a phone does NOT use it. Sign-in is always real.
-  static bool demoSignIn = false;
+  static bool demoSignIn = const bool.fromEnvironment('DEMO_SIGNIN'); // build with --dart-define=DEMO_SIGNIN=true only to test on a phone
 
   static String? get email => instance._email;
   static String get displayName => instance._name ?? (instance._email == null ? 'Guest' : instance._email!.split('@').first);
