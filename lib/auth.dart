@@ -1,8 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
+import 'notifications.dart';
 
 enum AuthProvider { apple, google, email, guest }
 
@@ -50,10 +53,15 @@ class Auth extends ChangeNotifier {
     _listening = true;
     fb.FirebaseAuth.instance.authStateChanges().listen((u) async {
       final signed = u != null && !u.isAnonymous;
+      debugPrint('AUTH state changed: signed=$signed email=${u?.email} providers=${u?.providerData.map((p) => p.providerId).toList()}');
       if (signed && (_email == null || _email != (u.email ?? 'Apple account'))) {
         final id = u.providerData.map((p) => p.providerId).firstWhere((_) => true, orElse: () => '');
         final p = id == 'apple.com' ? AuthProvider.apple : (id == 'google.com' ? AuthProvider.google : AuthProvider.email);
         await _set(u.email ?? 'Apple account', _niceName(u), p);
+        // The browser page of an Apple sign-in can stay in front. Say so, and make it one tap to come back.
+        if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+          unawaited(Notifier.showNow('✅ You are signed in. Tap here to go back to the app.'));
+        }
       } else if (!signed && _email != null) {
         await signOut();
       }
@@ -119,7 +127,9 @@ class Auth extends ChangeNotifier {
           return _set(demo, nameFromEmail(demo), p);
         }
         return _firebase(() async {
+          debugPrint('AUTH apple: starting');
           final c = await fb.FirebaseAuth.instance.signInWithProvider(_appleProvider());
+          debugPrint('AUTH apple: finished, user=${c.user?.email}');
           final u = c.user;
           if (u == null) return 'Apple did not complete the sign-in. Please try again.';
           return _set(u.email ?? 'Apple account', _niceName(u), p);
@@ -225,6 +235,7 @@ class Auth extends ChangeNotifier {
       if (e.code == GoogleSignInExceptionCode.canceled) return 'Sign-in was cancelled.';
       return 'Google sign-in failed. Please try again.';
     } on fb.FirebaseAuthException catch (e) {
+      debugPrint('AUTH error: code=${e.code} message=${e.message}');
       return switch (e.code) {
         'email-already-in-use' => 'This email already has an account. Choose "I already have an account".',
         'invalid-email' => 'Please enter a valid email address.',
@@ -236,7 +247,8 @@ class Auth extends ChangeNotifier {
         'network-request-failed' => 'No internet connection.',
         _ => 'Sign-in failed (${e.code}). Please try again.',
       };
-    } catch (_) {
+    } catch (e) {
+      debugPrint('AUTH unexpected error: $e');
       return 'Something went wrong. Please try again.';
     }
   }

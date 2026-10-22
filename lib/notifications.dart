@@ -119,6 +119,18 @@ class Notifier {
     if (p.onDay) await at(2, 0, '🔔 Check your $n today.');
   }
 
+  /// One message right now. Used when a sign-in finishes while the app is hidden behind the browser:
+  /// tapping it brings the person back to the app.
+  static Future<void> showNow(String body) async {
+    if (!supported) return;
+    try {
+      await init();
+      await _plugin.show(id: 900000300, title: 'Use It Up', body: body, notificationDetails: _details);
+    } catch (e) {
+      debugPrint('Could not show the message: $e');
+    }
+  }
+
   static const _trialId = 900000200;
 
   /// "Your trial ends in 2 days." This is the reminder the trial screen promises.
