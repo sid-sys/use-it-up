@@ -2,7 +2,14 @@ name: iOS TestFlight
 
 # Builds a signed iOS app and uploads it to TestFlight. Run it by hand:
 # GitHub > Actions > iOS TestFlight > Run workflow.
-# Needs these repository secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, APPLE_TEAM_ID.
+#
+# Signing uses ONE permanent Apple Distribution certificate and ONE App Store profile, kept as secrets,
+# so a build never creates a new certificate. Secrets needed:
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8   App Store Connect API key (used to upload)
+#   APPLE_TEAM_ID                           your Apple team id
+#   IOS_CERT_P12_BASE64, IOS_CERT_PASSWORD  the Apple Distribution certificate (.p12) and its password
+#   IOS_PROFILE_BASE64                      the App Store provisioning profile (.mobileprovision)
+# README > "iOS signing" explains how to make them.
 on:
   workflow_dispatch:
 
@@ -18,6 +25,19 @@ jobs:
           cache: true
       - run: flutter pub get
 
+      - name: Check the signing secrets
+        env:
+          P12: ${{ secrets.IOS_CERT_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_PROFILE_BASE64 }}
+        run: |
+          for v in P12 P12_PASSWORD PROFILE; do
+            if [ -z "${!v}" ]; then
+              echo "::error::A signing secret is missing. Add IOS_CERT_P12_BASE64, IOS_CERT_PASSWORD and IOS_PROFILE_BASE64. See README, iOS signing."
+              exit 1
+            fi
+          done
+
       - name: Write the App Store Connect key
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
@@ -27,24 +47,61 @@ jobs:
           printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
           echo "ASC_KEY_PATH=$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
 
+      # Put the permanent certificate in a temporary keychain and install the permanent profile.
+      - name: Install the certificate and the profile
+        env:
+          P12: ${{ secrets.IOS_CERT_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_PROFILE_BASE64 }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          echo "$P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+          echo "$PROFILE" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' "$RUNNER_TEMP/profile.plist")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print Name' "$RUNNER_TEMP/profile.plist")
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/profile.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "Profile: $PROFILE_NAME ($PROFILE_UUID)"
+
       # Prepares the Flutter files and pods. No signing yet.
       - name: Flutter build (unsigned)
         run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }}
 
-      # Apple creates the signing certificate and profile for us, using the API key.
-      - name: Archive
+      # Only the Runner app uses the fixed certificate and profile. The pods are not signed.
+      - name: Use the fixed signing for Runner
         env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          gem install xcodeproj --no-document --user-install
+          export PATH="$(ruby -e 'puts Gem.user_dir')/bin:$PATH"
+          ruby -rxcodeproj -e '
+            project = Xcodeproj::Project.open("ios/Runner.xcodeproj")
+            target = project.targets.find { |t| t.name == "Runner" }
+            target.build_configurations.each do |c|
+              next unless c.name == "Release"
+              c.build_settings["CODE_SIGN_STYLE"] = "Manual"
+              c.build_settings["CODE_SIGN_IDENTITY"] = "Apple Distribution"
+              c.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = ENV["PROFILE_NAME"]
+              c.build_settings["DEVELOPMENT_TEAM"] = ENV["APPLE_TEAM_ID"]
+            end
+            project.save
+          '
+
+      - name: Archive
         run: |
           xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
             -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             archive
 
       - name: Upload to TestFlight
@@ -61,7 +118,12 @@ jobs:
             <key>method</key><string>app-store-connect</string>
             <key>destination</key><string>upload</string>
             <key>teamID</key><string>${APPLE_TEAM_ID}</string>
-            <key>signingStyle</key><string>automatic</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.useitup.useItUp</key><string>${PROFILE_NAME}</string>
+            </dict>
             <key>uploadSymbols</key><true/>
           </dict>
           </plist>
@@ -70,7 +132,6 @@ jobs:
             -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -exportPath "$RUNNER_TEMP/export" \
-            -allowProvisioningUpdates \
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"

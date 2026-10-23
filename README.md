@@ -90,6 +90,18 @@ Hiding the "Admin panel" button in the app is **not security**. Anyone can unpac
 **server must check the caller**: Firestore rules (`firestore.rules`) and, for any Cloud Function or API, reject the call unless the
 verified ID token has the admin email and `email_verified`. The panel is read-only.
 
+## iOS signing (permanent)
+
+The TestFlight build uses one fixed Apple Distribution certificate and one App Store profile, so it never creates new
+certificates (Apple limits them). They live as GitHub secrets: `IOS_CERT_P12_BASE64`, `IOS_CERT_PASSWORD`, `IOS_PROFILE_BASE64`,
+plus `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, `APPLE_TEAM_ID`.
+
+1. Make a certificate request: `openssl req -new -newkey rsa:2048 -nodes -keyout distribution.key -out distribution.csr`.
+2. developer.apple.com > Certificates > + > **Apple Distribution** > upload the .csr > download `distribution.cer`.
+3. Profiles > + > **App Store Connect** > App ID `com.useitup.useItUp` > the new certificate > download the .mobileprovision.
+4. Put both files next to the key and run a script that builds the .p12 and the three base64 secrets.
+5. Keep `distribution.key` safe (it cannot be recreated). The certificate lasts one year: renew it before it ends.
+
 ## Public pages (GitHub Pages)
 
 The `docs/` folder is published at `https://sid-sys.github.io/use-it-up/`:
