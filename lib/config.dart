@@ -37,6 +37,10 @@ class AppConfig {
   static const productYearly = 'yearly';
   static const productLifetime = 'lifetime';
 
+  /// Google Play only: ONE subscription that holds the monthly and the yearly base plan. The app finds each
+  /// plan by its billing period, so the base plan names do not matter. Apple uses the two ids above.
+  static const androidSubscription = 'use_it_up_pro';
+
   /// Share the stores keep. 15% = small business programs. Use 0.30 to be careful.
   static const storeCut = 0.15;
 

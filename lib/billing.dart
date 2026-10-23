@@ -76,8 +76,7 @@ class Billing extends ChangeNotifier {
 
   /// Price as the store shows it (local currency). Falls back to the dollar price.
   String priceFor(PlanKind kind) {
-    final id = _productId(kind);
-    final d = id == null ? null : _pick(id);
+    final d = _pick(kind);
     if (d != null) {
       final p = _recurringPrice(d);
       return switch (kind) {
@@ -149,22 +148,42 @@ class Billing extends ChangeNotifier {
         _ => null,
       };
 
-  static PlanKind? _kindOf(String id) => switch (id) {
+  /// The plan a bought product stands for. The Android subscription holds both plans, so it cannot say
+  /// which one was bought: use the plan the person just picked, or the last one we knew.
+  PlanKind? _kindOf(String id) => switch (id) {
         AppConfig.productMonthly => PlanKind.monthly,
         AppConfig.productYearly => PlanKind.yearly,
         AppConfig.productLifetime => PlanKind.lifetime,
+        AppConfig.androidSubscription => _buying ?? (_chosen == PlanKind.yearly ? PlanKind.yearly : PlanKind.monthly),
         _ => null,
       };
 
+  PlanKind? _buying;
+
   /// Google Play lists one entry per offer. Prefer the free-trial offer: Play only lists
   /// it when this person is still allowed a trial.
-  ProductDetails? _pick(String id) {
-    final list = _products.where((p) => p.id == id).toList();
+  ProductDetails? _pick(PlanKind kind) {
+    final id = _productId(kind);
+    if (id == null) return null;
+    var list = _products.where((p) => p.id == id).toList();
+    if (list.isEmpty && kind != PlanKind.lifetime) {
+      // Android: one subscription with a monthly and a yearly base plan. Tell them apart by billing period.
+      final period = kind == PlanKind.yearly ? 'P1Y' : 'P1M';
+      list = _products.where((p) => p.id == AppConfig.androidSubscription && _billingPeriod(p) == period).toList();
+    }
     if (list.isEmpty) return null;
     for (final p in list) {
       if (_hasFreePhase(p)) return p;
     }
     return list.first;
+  }
+
+  static String? _billingPeriod(ProductDetails p) {
+    if (p is! GooglePlayProductDetails || p.subscriptionIndex == null) return null;
+    final offers = p.productDetails.subscriptionOfferDetails;
+    if (offers == null || p.subscriptionIndex! >= offers.length) return null;
+    final phases = offers[p.subscriptionIndex!].pricingPhases;
+    return phases.isEmpty ? null : phases.last.billingPeriod;
   }
 
   static bool _hasFreePhase(ProductDetails p) {
@@ -197,6 +216,7 @@ class Billing extends ChangeNotifier {
         AppConfig.productMonthly,
         AppConfig.productYearly,
         AppConfig.productLifetime,
+        if (defaultTargetPlatform == TargetPlatform.android) AppConfig.androidSubscription,
       });
       _products = r.productDetails;
       notifyListeners();
@@ -307,27 +327,33 @@ class Billing extends ChangeNotifier {
       await initStore();
       if (!_storeReady) throw Exception('The store is not available right now.');
     }
-    final id = _productId(kind);
-    final details = id == null ? null : _pick(id);
+    final details = _pick(kind);
     if (details == null) throw Exception('This plan is not available in the store yet.');
     final param = PurchaseParam(productDetails: details);
     _purchase = Completer<void>();
     final wait = _purchase!.future;
+    _buying = kind;
     bool started;
     try {
       started = await _iap.buyNonConsumable(purchaseParam: param); // subscriptions use the same call
     } catch (e) {
       _purchase = null;
+      _buying = null;
       rethrow;
     }
     if (!started) {
       _purchase = null;
+      _buying = null;
       throw PurchaseCancelled();
     }
-    await wait.timeout(const Duration(minutes: 3), onTimeout: () {
-      _purchase = null;
-      throw Exception('The store is taking long. If you were charged, Premium will switch on by itself.');
-    });
+    try {
+      await wait.timeout(const Duration(minutes: 3), onTimeout: () {
+        _purchase = null;
+        throw Exception('The store is taking long. If you were charged, Premium will switch on by itself.');
+      });
+    } finally {
+      _buying = null;
+    }
   }
 
   /// Cancel. Only the stores can cancel a subscription, so the real build sends the person
