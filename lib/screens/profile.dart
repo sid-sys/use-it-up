@@ -199,6 +199,7 @@ class ProfileScreen extends StatelessWidget {
     final passC = TextEditingController();
     String? error;
     var busy = false;
+    var showPassword = false;
     final done = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -214,8 +215,15 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 12),
               TextField(
                 controller: passC,
-                obscureText: true,
-                decoration: const InputDecoration(hintText: 'Type your password to confirm'),
+                obscureText: !showPassword,
+                decoration: InputDecoration(
+                  hintText: 'Type your password to confirm',
+                  suffixIcon: IconButton(
+                    tooltip: showPassword ? 'Hide password' : 'Show password',
+                    icon: Icon(showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                    onPressed: () => setD(() => showPassword = !showPassword),
+                  ),
+                ),
               ),
             ] else if (!Auth.demoSignIn) ...[
               const SizedBox(height: 12),

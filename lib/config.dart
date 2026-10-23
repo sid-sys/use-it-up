@@ -31,7 +31,7 @@ class AppConfig {
   /// Logins for the App Store and Google Play review teams. They get Premium without paying, so a reviewer
   /// can see every screen. Create each one by hand in Firebase (Authentication > Users > Add user) and give
   /// the email and password only in the store review notes. See the README.
-  static const reviewEmails = <String>['tetraheaddevelopers+review@gmail.com'];
+  static const reviewEmails = <String>['review@gmail.com'];
 
   /// Product ids. They must match exactly what is created in App Store Connect and Google Play Console.
   static const productMonthly = 'monthly';

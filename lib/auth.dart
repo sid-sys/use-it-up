@@ -36,7 +36,9 @@ class Auth extends ChangeNotifier {
   static bool get isAdmin => _is([AppConfig.adminEmail]);
 
   /// The App Store and Google Play review logins. They get Premium without paying.
-  static bool get isReviewer => _is(AppConfig.reviewEmails);
+  /// Only for a sign-in with email and password. Someone who owns that email address and signs in with Google or
+  /// Apple does not get it: only the person who knows the password does.
+  static bool get isReviewer => _is(AppConfig.reviewEmails) && instance.provider == AuthProvider.email;
 
   /// "john.doe42@gmail.com" becomes "John Doe". Used for Google and Apple sign-in.
   static String nameFromEmail(String email) {

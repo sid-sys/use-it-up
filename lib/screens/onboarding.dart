@@ -300,6 +300,7 @@ class _SignUpState extends State<_SignUp> with WidgetsBindingObserver {
     final passC = TextEditingController();
     final real = !Auth.demoSignIn; // real sign-in also asks for a password
     var create = true;
+    var showPassword = false; // the eye icon next to the password
     String? note;
     final result = await showModalBottomSheet<(String, String, String, bool)>(
       context: context,
@@ -336,8 +337,15 @@ class _SignUpState extends State<_SignUp> with WidgetsBindingObserver {
               const SizedBox(height: 10),
               TextField(
                 controller: passC,
-                obscureText: true,
-                decoration: const InputDecoration(hintText: 'Password'),
+                obscureText: !showPassword,
+                decoration: InputDecoration(
+                  hintText: 'Password',
+                  suffixIcon: IconButton(
+                    tooltip: showPassword ? 'Hide password' : 'Show password',
+                    icon: Icon(showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                    onPressed: () => setSheet(() => showPassword = !showPassword),
+                  ),
+                ),
                 onSubmitted: (_) => Navigator.pop(ctx, (nameC.text, c.text, passC.text, create)),
               ),
             ],

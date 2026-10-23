@@ -30,7 +30,7 @@ Reviewers must be able to open the whole app without paying. `AppConfig.reviewEm
 A person who signs in with one of them gets Premium for free, with no food limit and no Cancel button.
 
 1. Firebase console > Authentication > Users > **Add user**. Email: the one in `AppConfig.reviewEmails`
-   (today `tetraheaddevelopers+review@gmail.com`). Choose a strong password.
+   (today `review@gmail.com`). Choose a strong password.
 2. Keep that account: if it is deleted, anyone could register the same email and get free Premium.
 3. App Store Connect > App Review Information: tick **Sign-in required**, enter the email and password.
    Google Play Console > App content > **App access**: add the same login and instructions.
