@@ -1,7 +1,15 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// The upload key for Google Play. key.properties is NOT in git. Without it (CI, tests), the debug key is used.
+val keyProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
 }
 
 android {
@@ -30,11 +38,21 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("upload") {
+            if (keyProperties.containsKey("storeFile")) {
+                storeFile = file(keyProperties["storeFile"] as String)
+                storePassword = keyProperties["storePassword"] as String
+                keyAlias = keyProperties["keyAlias"] as String
+                keyPassword = keyProperties["keyPassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Signed with the upload key when key.properties exists. Otherwise the debug key, so `flutter run --release` still works.
+            signingConfig = if (keyProperties.containsKey("storeFile")) signingConfigs.getByName("upload") else signingConfigs.getByName("debug")
             // Code shrinking (R8) can break the ML Kit photo reader, so it stays off.
             isMinifyEnabled = false
             isShrinkResources = false
