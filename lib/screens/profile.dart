@@ -186,7 +186,7 @@ class ProfileScreen extends StatelessWidget {
               ),
             ]),
             const SizedBox(height: 20),
-            Center(child: Text('Use It Up 1.0.0 · ${AppConfig.developerName}', style: body(13, FontWeight.w400, Colors.black45))),
+            Center(child: Text('Use It Up 1.0.0', style: body(13, FontWeight.w400, Colors.black45))),
           ],
         );
       },

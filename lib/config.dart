@@ -8,7 +8,6 @@ class AppConfig {
   /// Hiding the button is NOT security. See README: the server must check this too.
   static const adminEmail = 'sidharthbabu9@gmail.com';
 
-  static const developerName = 'Tetra Developers';
   static const contactEmail = 'tetraheaddevelopers@gmail.com';
 
   // Public pages (GitHub Pages). Needed by App Store and Google Play.
