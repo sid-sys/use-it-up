@@ -58,3 +58,12 @@ android/local.properties
 *.p8
 store_screenshots/
 tool/store_shots/raw/
+
+# Signing keys, passwords and release files. Never commit these.
+signing/
+release/
+*.p12
+*.p8
+*.pem
+*.mobileprovision
+secret_*.txt
