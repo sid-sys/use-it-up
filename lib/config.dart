@@ -41,11 +41,15 @@ class AppConfig {
   static const storeCut = 0.15;
 
   // ---- Costs, used by the admin dashboard to show honest profit ----
-  /// Cost of one cloud AI scan request, in US dollars. On-device reading is free.
-  static const aiCostPerRequest = 0.004;
+  /// Cost of one scan in US dollars. It is 0 because the date is read on the phone (Google ML Kit), not in the cloud.
+  /// If a paid cloud reader is ever added, put its price per scan here.
+  static const aiCostPerRequest = 0.0;
 
-  /// Fixed monthly fees in US dollars (hosting, backend, tools). Edit to your real bills.
-  static const fixedMonthlyCosts = 20.0;
+  /// Fixed costs. Today: the Apple Developer Program, $99 a year, which is $8.25 a month.
+  /// Not counted: the Google Play fee ($25, paid once), Firebase (free plan), GitHub and the legal pages (free).
+  /// Add a line here when a real bill starts (a server, a domain, a paid plan).
+  static const appleDeveloperPerYear = 99.0;
+  static const fixedMonthlyCosts = appleDeveloperPerYear / 12;
 
   // Free plan limits
   static const freeItemLimit = 20;
