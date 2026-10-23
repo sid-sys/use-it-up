@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'auth.dart';
 import 'billing.dart';
 import 'feedback_log.dart';
 import 'firebase_options.dart';
+import 'install_info.dart';
 import 'notification_log.dart';
 import 'notifications.dart';
 import 'screens/foods.dart';
@@ -36,6 +38,7 @@ Future<void> main() async {
   await FeedbackLog.instance.load();
   await Notifier.init();
   Analytics.instance.log(Ev.opened);
+  unawaited(InstallInfo.collect()); // Android: where the install came from. Never blocks the app.
   runApp(const UseItUpApp());
   store.refreshGeneralReminders(); // weekly overview + inactivity nudge, counted fresh
 }

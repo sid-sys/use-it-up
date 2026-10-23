@@ -71,6 +71,7 @@ Color planText(AdminPlan p) => p == AdminPlan.lifetime ? lime : charcoal;
       Ev.payFailed => ('⚠️', 'Payment did not happen'),
       Ev.subscribed => ('🎉', 'Subscribed'),
       Ev.feedbackSent => ('💬', 'Sent feedback'),
+      Ev.installSource => ('🔗', 'Installed from a link'),
       _ => ('•', type),
     };
 

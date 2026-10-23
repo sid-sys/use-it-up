@@ -3,6 +3,7 @@ import '../auth.dart';
 import '../billing.dart';
 import '../feedback_log.dart';
 import '../install_id.dart';
+import '../install_info.dart';
 import '../main.dart' show billing, store;
 import 'models.dart';
 
@@ -38,6 +39,7 @@ class LocalAdminRepository implements AdminRepository {
     ];
     final signedIn = Auth.signedIn;
     final installId = await InstallId.get();
+    final install = InstallInfo.current ?? await InstallInfo.collect();
     final user = AdminUser(
       id: installId,
       name: signedIn ? Auth.displayName : '',
@@ -56,6 +58,7 @@ class LocalAdminRepository implements AdminRepository {
       streak: 0,
       heardFrom: store.heardFrom,
       answers: {
+        if (install?.label != null) 'Came from': install!.label!,
         if (store.problem != null) 'What usually gets forgotten': store.problem!,
         if (store.household != null) 'People shopping for': store.household!,
         'Reminders': store.remindWhen,
@@ -67,7 +70,7 @@ class LocalAdminRepository implements AdminRepository {
     ];
     return AdminData(
       users: [user],
-      devices: [AdminDevice(installId: installId, ownerId: user.id, installedAt: first, lastSeen: last)],
+      devices: [AdminDevice(installId: installId, ownerId: user.id, installedAt: install?.firstInstallTime ?? first, lastSeen: last)],
       feedback: feedback,
       serverConnected: false,
     );

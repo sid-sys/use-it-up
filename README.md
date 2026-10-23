@@ -90,6 +90,22 @@ Hiding the "Admin panel" button in the app is **not security**. Anyone can unpac
 **server must check the caller**: Firestore rules (`firestore.rules`) and, for any Cloud Function or API, reject the call unless the
 verified ID token has the admin email and `email_verified`. The panel is read-only.
 
+## Where installs come from (Android)
+
+The app reads the **Google Play Install Referrer** the first time it opens (`lib/install_info.dart`, `MainActivity.kt`, library
+`com.android.installreferrer:installreferrer`). The method in the old Medium article (a broadcast receiver for
+`com.android.vending.INSTALL_REFERRER`) was switched off by Google on 1 March 2020, so it is not used.
+
+- A link with a referrer: `https://play.google.com/store/apps/details?id=com.useitup.use_it_up&referrer=utm_source%3Dinstagram%26utm_medium%3Dbio%26utm_campaign%3Dlaunch`
+- A search inside Google Play gives `utm_source=google-play&utm_medium=organic`.
+- The result is saved on the phone, logged as the event `install_source`, and shown in the Admin panel under "Came from".
+- Google answers once per install and keeps the answer 90 days. The same call also gives the real install time
+  (`firstInstallTime`) that the Admin panel uses for the Installs chart.
+- **How to test:** it only works for an app installed from Google Play. Upload a build to Internal testing, add yourself as a tester,
+  open the link above on a phone that does not have the app, install, open it, then look at Profile > Admin panel > your user.
+  A file installed with adb has no Play link, so it shows nothing. The old `adb shell am broadcast` test no longer works.
+- iPhone: Apple gives no install link to apps, so nothing is recorded there.
+
 ## iOS signing (permanent)
 
 The TestFlight build uses one fixed Apple Distribution certificate and one App Store profile, so it never creates new

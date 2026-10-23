@@ -19,6 +19,7 @@ class Ev {
   static const heardFrom = 'heard_from'; // detail: where they heard about the app
   static const payFailed = 'payment_failed'; // detail: cancelled, failed or store_unavailable
   static const feedbackSent = 'feedback_sent';
+  static const installSource = 'install_source'; // Android: the Google Play link the install came from
 }
 
 class LoggedEvent {
