@@ -116,17 +116,6 @@ class Tag extends StatelessWidget {
       );
 }
 
-class MockTag extends StatelessWidget {
-  const MockTag({super.key});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: charcoal, borderRadius: BorderRadius.circular(6)),
-        child: Text('MOCK DATA', style: body(10, FontWeight.w800, lime)),
-      );
-}
-
 class UserAvatar extends StatelessWidget {
   final AdminUser user;
   final double radius;
