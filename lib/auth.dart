@@ -246,7 +246,8 @@ class Auth extends ChangeNotifier {
     try {
       return await run();
     } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) return 'Sign-in was cancelled.';
+      debugPrint('AUTH google error: code=${e.code} description=${e.description}');
+      if (e.code == GoogleSignInExceptionCode.canceled) return 'Google sign-in did not finish. If you did not cancel, please try again.';
       return 'Google sign-in failed. Please try again.';
     } on fb.FirebaseAuthException catch (e) {
       debugPrint('AUTH error: code=${e.code} message=${e.message}');
